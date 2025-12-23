@@ -13,7 +13,7 @@ This guide covers deploying the Foil Lab platform from the monorepo.
 └─────────────────────┘         └─────────────────────┘
 
 Frontend: https://foil-lab-web.vercel.app
-Backend:  https://strava-tracks-analyzer-production.up.railway.app
+Backend:  https://foil-lab-production.up.railway.app
 ```
 
 ## Backend Deployment (Railway)
@@ -75,7 +75,7 @@ Backend:  https://strava-tracks-analyzer-production.up.railway.app
 
 3. **Environment Variables**
    ```bash
-   NEXT_PUBLIC_API_URL=https://strava-tracks-analyzer-production.up.railway.app
+   NEXT_PUBLIC_API_URL=https://foil-lab-production.up.railway.app
    ```
 
 4. **Deploy**
@@ -121,7 +121,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ANTHROPIC_API_KEY=sk-ant-...  # Optional
 
 # Frontend (Vercel dashboard)
-NEXT_PUBLIC_API_URL=https://strava-tracks-analyzer-production.up.railway.app
+NEXT_PUBLIC_API_URL=https://foil-lab-production.up.railway.app
 ```
 
 ## Monitoring
@@ -136,7 +136,7 @@ NEXT_PUBLIC_API_URL=https://strava-tracks-analyzer-production.up.railway.app
 
 ### Health Checks
 ```bash
-curl https://strava-tracks-analyzer-production.up.railway.app/api/health
+curl https://foil-lab-production.up.railway.app/api/health
 # Returns: {"status": "healthy", "service": "foil-lab-api"}
 ```
 

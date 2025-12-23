@@ -155,7 +155,7 @@ POST /api/analyze-track
 └─────────────────┘         └─────────────────┘
 
 Frontend: https://foil-lab-web.vercel.app
-Backend:  https://strava-tracks-analyzer-production.up.railway.app
+Backend:  https://foil-lab-production.up.railway.app
 ```
 
 Both deploy automatically from `main` branch with subdirectory configuration.

@@ -52,7 +52,7 @@ foil-lab/
 
 | Service | Platform | URL |
 |---------|----------|-----|
-| Backend | Railway | https://strava-tracks-analyzer-production.up.railway.app |
+| Backend | Railway | https://foil-lab-production.up.railway.app |
 | Frontend | Vercel | https://foil-lab-web.vercel.app |
 
 Both auto-deploy from `main` branch.
