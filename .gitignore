@@ -28,6 +28,9 @@ htmlcov/
 .pytest_cache/
 .coverage
 *.cover
+test-results/
+playwright-report/
+playwright/.cache/
 
 # IDEs
 .idea/

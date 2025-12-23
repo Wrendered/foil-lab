@@ -20,16 +20,17 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'cd ../backend && source venv/bin/activate && uvicorn api.main:app --host 0.0.0.0 --port 8000',
+      command: 'venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000',
+      cwd: '../backend',
       port: 8000,
       reuseExistingServer: true,
-      timeout: 30000,
+      timeout: 60000,
     },
     {
       command: 'npm run dev',
       port: 3000,
       reuseExistingServer: true,
-      timeout: 30000,
+      timeout: 60000,
     },
   ],
 });
