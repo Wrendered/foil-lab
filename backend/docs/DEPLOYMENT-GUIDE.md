@@ -12,7 +12,7 @@ This guide covers deploying the Foil Lab platform from the monorepo.
 │  Platform: Vercel   │         │  Platform: Railway  │
 └─────────────────────┘         └─────────────────────┘
 
-Frontend: https://foil-lab-web.vercel.app
+Frontend: https://gracious-love-production-ec22.up.railway.app
 Backend:  https://foil-lab-production.up.railway.app
 ```
 

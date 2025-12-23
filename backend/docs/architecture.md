@@ -154,7 +154,7 @@ POST /api/analyze-track
 │  (frontend/)    │  HTTPS  │  (backend/)     │
 └─────────────────┘         └─────────────────┘
 
-Frontend: https://foil-lab-web.vercel.app
+Frontend: https://gracious-love-production-ec22.up.railway.app
 Backend:  https://foil-lab-production.up.railway.app
 ```
 
