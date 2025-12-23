@@ -9,17 +9,19 @@ This guide covers deploying the Foil Lab platform from the monorepo.
 │   Next.js Frontend  │         │   FastAPI Backend   │
 │   (frontend/)       │ ──────► │   (backend/)        │
 │                     │  HTTPS  │                     │
-│  Platform: Vercel   │         │  Platform: Railway  │
+│  Platform: Railway  │         │  Platform: Railway  │
 └─────────────────────┘         └─────────────────────┘
 
 Frontend: https://gracious-love-production-ec22.up.railway.app
 Backend:  https://foil-lab-production.up.railway.app
 ```
 
+**Legacy redirect**: https://foil-lab-web.vercel.app (redirects to Railway)
+
 ## Backend Deployment (Railway)
 
 ### Current Status
-**Deployed**: https://strava-tracks-analyzer-production.up.railway.app
+**Deployed**: https://foil-lab-production.up.railway.app
 
 ### Setup Steps
 
@@ -34,53 +36,57 @@ Backend:  https://foil-lab-production.up.railway.app
    - **Set Root Directory**: `backend`
 
 3. **Configure Service**
-   Railway auto-detects Python. If manual config needed:
+   Railway auto-detects Python. Set custom start command:
    ```
    Root Directory: backend
-   Build Command: pip install -r requirements.txt
    Start Command: uvicorn api.main:app --host 0.0.0.0 --port $PORT
    ```
 
-4. **Environment Variables**
+4. **Generate Domain**
+   - Settings -> Networking -> Generate Domain
+   - **Important**: Use the port Railway assigns (typically 8080, check logs)
+   - The app uses `$PORT` environment variable
+
+5. **Environment Variables**
    ```bash
    # Optional - for AI gear comparison feature
    ANTHROPIC_API_KEY=your-api-key-here
    ```
 
-5. **Deploy**
-   - Railway automatically deploys on push to main
-   - Monitor logs in Railway dashboard
-   - Verify: `curl https://your-app.railway.app/api/health`
+6. **Verify Deployment**
+   ```bash
+   curl https://foil-lab-production.up.railway.app/api/health
+   # Should return: {"status":"healthy","service":"foil-lab-api"}
+   ```
 
-## Frontend Deployment (Vercel)
+## Frontend Deployment (Railway)
 
 ### Current Status
-**Deployed**: https://foil-lab-web.vercel.app
+**Deployed**: https://gracious-love-production-ec22.up.railway.app
 
 ### Setup Steps
 
-1. **Connect to Vercel**
-   - Go to https://vercel.com
-   - Click "Add New -> Project"
-   - Import `foil-lab` repository
+1. **Add New Service to Project**
+   - In same Railway project, click "+ New"
+   - Select "GitHub Repo"
+   - Choose `foil-lab` repository
    - **Set Root Directory**: `frontend`
 
-2. **Configure Build Settings**
-   ```
-   Framework Preset: Next.js
-   Root Directory: frontend
-   Build Command: npm run build
-   Output Directory: .next
-   ```
-
-3. **Environment Variables**
+2. **Environment Variables**
    ```bash
    NEXT_PUBLIC_API_URL=https://foil-lab-production.up.railway.app
+   NEXT_PUBLIC_APP_ENV=production
+   NEXT_PUBLIC_ENABLE_WIND_LINES=true
+   NEXT_PUBLIC_ENABLE_VMG_HIGHLIGHT=true
    ```
 
-4. **Deploy**
-   - Click "Deploy"
-   - Wait for build
+3. **Generate Domain**
+   - Settings -> Networking -> Generate Domain
+   - Use port **3000** for Next.js
+
+4. **Verify Deployment**
+   - Visit the generated URL
+   - Check that it connects to backend (no "Connection Lost" error)
 
 ## Local Development
 
@@ -105,64 +111,64 @@ npm run dev
 # App at http://localhost:3000
 ```
 
-## Environment Configuration
+## Port Configuration
 
-### Development
-```bash
-# Backend - no .env needed for basic operation
+### Railway Port Behavior
+- Railway sets `$PORT` environment variable (typically 8080)
+- Always use `--port $PORT` in start commands
+- When generating domains, check logs for actual port
 
-# Frontend (frontend/.env.local)
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+### Local Development Ports
+- Backend: 8000 (hardcoded in run_api.py)
+- Frontend: 3000 (Next.js default)
 
-### Production
-```bash
-# Backend (Railway dashboard)
-ANTHROPIC_API_KEY=sk-ant-...  # Optional
+## CORS Configuration
 
-# Frontend (Vercel dashboard)
-NEXT_PUBLIC_API_URL=https://foil-lab-production.up.railway.app
-```
+The backend allows requests from these origins (in `backend/api/main.py`):
+- `http://localhost:3000` (local dev)
+- `https://foil-lab-web.vercel.app` (legacy Vercel)
+- `https://gracious-love-production-ec22.up.railway.app` (Railway frontend)
+
+To add new origins, edit `backend/api/main.py` and redeploy.
 
 ## Monitoring
 
-### Railway (Backend)
-- Logs: Railway Dashboard -> Deployments -> View Logs
-- Metrics: Railway Dashboard -> Metrics
-
-### Vercel (Frontend)
-- Logs: Vercel Dashboard -> Deployments -> Logs
-- Analytics: Vercel Dashboard -> Analytics
+### Railway Dashboard
+- Logs: Click service -> Deployments -> View Logs
+- Metrics: Click service -> Metrics tab
 
 ### Health Checks
 ```bash
+# Backend
 curl https://foil-lab-production.up.railway.app/api/health
-# Returns: {"status": "healthy", "service": "foil-lab-api"}
+
+# Frontend (should return HTML)
+curl -I https://gracious-love-production-ec22.up.railway.app/
 ```
 
 ## Troubleshooting
 
+### 502 Application Failed to Respond
+- Check deployment logs for errors
+- Verify port matches between app and domain configuration
+- Check that `$PORT` is used in start command
+
 ### CORS Errors
-- Check allowed origins in `backend/api/main.py`
-- Verify `NEXT_PUBLIC_API_URL` in Vercel
+- Add frontend URL to `allow_origins` in `backend/api/main.py`
+- Redeploy backend
 
-### Build Failures
-- Backend: Check Python version (3.11+ recommended)
-- Frontend: Run `npm run build` locally to reproduce
-
-### API Not Responding
-- Check Railway logs for errors
-- Verify the service is running in Railway dashboard
-- Test health endpoint
+### Connection Lost in Frontend
+- Verify `NEXT_PUBLIC_API_URL` is set correctly
+- Check backend is healthy: `curl .../api/health`
+- Rebuild frontend after changing env vars
 
 ## Cost Estimates
 
-### Current Setup (Free/Minimal)
-- Railway: Free tier or ~$5-20/month
-- Vercel: Free tier (100GB bandwidth)
-- **Total: $0-20/month**
+### Railway (Both Services)
+- Free tier: Limited hours/month
+- Pro: ~$5-20/month per service
+- **Total: $10-40/month**
 
-### Production Setup
-- Railway Pro: ~$20-50/month
-- Vercel Pro: $20/month
-- **Total: $40-70/month**
+### Legacy Vercel (Redirect Only)
+- Free tier: Sufficient for redirect
+- **Total: $0/month**
