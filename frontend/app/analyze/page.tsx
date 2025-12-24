@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { ParameterControls } from '@/features/track-analysis/components/ParameterControls';
-import { SimpleAnalysisResults } from '@/components/SimpleAnalysisResults';
 import { AnalysisView } from '@/components/analysis';
 import { TrackUploader } from '@/components/TrackUploader';
 import { TrackNavigator } from '@/components/TrackNavigator';
