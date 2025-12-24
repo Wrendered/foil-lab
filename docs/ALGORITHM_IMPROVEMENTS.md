@@ -131,20 +131,36 @@ angle_to_wind | avg_speed | best_speed | vmg | segment_count
 - Compare polars across sessions/wings
 - Normalize for wind speed if known
 
+**3.4 Track Comparison UI**
+- Easy way to compare stats between different tracks
+- Side-by-side polar plots
+- Overlay mode to see differences
+- Filter/select which tracks to compare
+- Export comparison data
+
 ---
 
 ## Implementation Priority
 
-1. **[NEXT] Phase 1.2** - Add Open-Meteo wind lookup
-   - Parse GPX date/location
-   - Call API
-   - Show result to user
+1. **[DONE] Phase 1.2** - Add Open-Meteo wind lookup ✓
+   - Backend endpoint: `/api/lookup-wind`
+   - Frontend: Auto-lookup on file upload
+   - Interactive compass for wind direction input
 
-2. **Phase 1.1** - Show GPX context in UI
+2. **[DONE] Phase 1.1** - Show GPX context in UI ✓
+   - Date and location shown after file upload
 
-3. **Phase 2.1** - Multi-start validation
+3. **[NEXT] Phase 3.1** - Polar data output
+   - Build polar data structure
+   - Visualize speed vs angle
 
-4. **Phase 3.1** - Polar data output
+4. **Phase 3.4** - Track comparison
+   - Compare stats between different sessions
+   - Compare polars across sessions/wings
+   - Side-by-side or overlay views
+
+5. **Phase 2.1** - Multi-start validation (if needed)
+   - Only if users report convergence issues with good starting estimates
 
 ---
 
