@@ -63,8 +63,17 @@ python -m pytest tests/
 |----------|--------|-------------|
 | `/api/health` | GET | Health check |
 | `/api/config` | GET | Default parameters and ranges |
+| `/api/lookup-wind` | GET | Historical wind from Open-Meteo API |
 | `/api/analyze-track` | POST | Analyze GPX file |
 | `/api/estimate-wind` | POST | Standalone wind estimation |
+
+### GET /api/lookup-wind Parameters
+- `latitude` (float): Location latitude
+- `longitude` (float): Location longitude
+- `date` (string): Date in YYYY-MM-DD format
+- `hour` (int): Hour of day (0-23), defaults to 12
+
+Returns historical wind direction and speed from Open-Meteo (free, no API key).
 
 ### POST /api/analyze-track Parameters
 - `wind_direction` (float): Initial wind estimate (degrees)
