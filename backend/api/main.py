@@ -5,17 +5,19 @@ This provides REST API endpoints for track analysis, wind estimation,
 and other core algorithms, enabling framework-agnostic frontend development.
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
+from datetime import datetime
 import pandas as pd
 import numpy as np
 import logging
 import io
 import sys
 import os
+import httpx
 
 # Add parent directory to path to import our modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -92,6 +94,16 @@ class TrackAnalysisResponse(BaseModel):
     track_summary: Dict[str, Any]
 
 
+class HistoricalWindResponse(BaseModel):
+    """Response from historical wind lookup."""
+    wind_direction: float  # degrees (0-360)
+    wind_speed_kmh: float  # km/h
+    wind_speed_knots: float  # knots
+    source: str  # "open-meteo"
+    location: str  # human-readable location description
+    timestamp: str  # ISO format timestamp used for lookup
+
+
 @app.get("/")
 async def root():
     """Root endpoint with API information."""
@@ -138,6 +150,119 @@ async def get_config():
             "suspicious_angle_threshold": {"min": 15, "max": 35, "step": 1}
         }
     }
+
+
+@app.get("/api/lookup-wind", response_model=HistoricalWindResponse)
+async def lookup_historical_wind(
+    latitude: float = Query(..., description="Latitude of the location"),
+    longitude: float = Query(..., description="Longitude of the location"),
+    date: str = Query(..., description="Date in YYYY-MM-DD format"),
+    hour: int = Query(12, ge=0, le=23, description="Hour of day (0-23)")
+):
+    """
+    Look up historical wind data from Open-Meteo API.
+
+    This endpoint fetches historical weather data for a specific location and time,
+    which can be used to get accurate wind direction for GPS track analysis.
+
+    Args:
+        latitude: Latitude of the location (-90 to 90)
+        longitude: Longitude of the location (-180 to 180)
+        date: Date in YYYY-MM-DD format
+        hour: Hour of the day (0-23), defaults to noon
+
+    Returns:
+        Historical wind direction and speed for the specified location and time
+    """
+    try:
+        # Validate coordinates
+        if not -90 <= latitude <= 90:
+            raise HTTPException(status_code=400, detail="Latitude must be between -90 and 90")
+        if not -180 <= longitude <= 180:
+            raise HTTPException(status_code=400, detail="Longitude must be between -180 and 180")
+
+        # Validate date format
+        try:
+            parsed_date = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Date must be in YYYY-MM-DD format")
+
+        # Check if date is not in the future
+        if parsed_date.date() > datetime.now().date():
+            raise HTTPException(status_code=400, detail="Cannot lookup wind for future dates")
+
+        # Call Open-Meteo Historical Weather API
+        # Documentation: https://open-meteo.com/en/docs/historical-weather-api
+        url = "https://archive-api.open-meteo.com/v1/archive"
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "start_date": date,
+            "end_date": date,
+            "hourly": "wind_direction_10m,wind_speed_10m",
+            "timezone": "auto"
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params=params, timeout=10.0)
+
+            if response.status_code != 200:
+                logger.error(f"Open-Meteo API error: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Weather service returned error: {response.status_code}"
+                )
+
+            data = response.json()
+
+        # Extract wind data for the specified hour
+        hourly = data.get("hourly", {})
+        wind_directions = hourly.get("wind_direction_10m", [])
+        wind_speeds = hourly.get("wind_speed_10m", [])
+
+        if not wind_directions or not wind_speeds or hour >= len(wind_directions):
+            raise HTTPException(
+                status_code=404,
+                detail="No wind data available for the specified time"
+            )
+
+        wind_direction = wind_directions[hour]
+        wind_speed_kmh = wind_speeds[hour]
+
+        # Handle null values from API
+        if wind_direction is None or wind_speed_kmh is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Wind data not available for this location/time"
+            )
+
+        # Convert km/h to knots (1 km/h = 0.539957 knots)
+        wind_speed_knots = wind_speed_kmh * 0.539957
+
+        # Create human-readable location description
+        lat_dir = "N" if latitude >= 0 else "S"
+        lon_dir = "E" if longitude >= 0 else "W"
+        location_str = f"{abs(latitude):.2f}°{lat_dir}, {abs(longitude):.2f}°{lon_dir}"
+
+        # Create timestamp string
+        timestamp_str = f"{date}T{hour:02d}:00:00"
+
+        logger.info(f"Wind lookup: {location_str} on {date} at {hour}:00 = {wind_direction}° at {wind_speed_knots:.1f}kts")
+
+        return HistoricalWindResponse(
+            wind_direction=float(wind_direction),
+            wind_speed_kmh=float(wind_speed_kmh),
+            wind_speed_knots=round(wind_speed_knots, 1),
+            source="open-meteo",
+            location=location_str,
+            timestamp=timestamp_str
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error looking up wind: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error looking up wind: {str(e)}")
 
 
 @app.post("/api/analyze-track", response_model=TrackAnalysisResponse)
