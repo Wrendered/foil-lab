@@ -6,7 +6,6 @@ import { Upload, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrackFileCard } from '@/components/TrackFileCard';
 import { useUploadStore } from '@/stores/uploadStore';
-import { useAnalysisStore } from '@/stores/analysisStore';
 import { parseGPXFile } from '@/lib/gpx-parser';
 import { cn } from '@/lib/utils';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { FileText, Calendar, MapPin, Loader2, Check, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -73,25 +73,31 @@ export function TrackFileCard({
     setFileWindData(file.id, newDirection, windSpeed);
   };
 
-  // Extract location from first GPS point or bounds center
-  const location = gpsData?.[0]
-    ? { lat: gpsData[0].latitude, lon: gpsData[0].longitude }
-    : metadata?.bounds
-      ? {
-          lat: (metadata.bounds.minLat + metadata.bounds.maxLat) / 2,
-          lon: (metadata.bounds.minLon + metadata.bounds.maxLon) / 2
-        }
-      : null;
+  // Extract location from first GPS point or bounds center (memoized to prevent useEffect re-runs)
+  const location = useMemo(() => {
+    if (gpsData?.[0]) {
+      return { lat: gpsData[0].latitude, lon: gpsData[0].longitude };
+    }
+    if (metadata?.bounds) {
+      return {
+        lat: (metadata.bounds.minLat + metadata.bounds.maxLat) / 2,
+        lon: (metadata.bounds.minLon + metadata.bounds.maxLon) / 2
+      };
+    }
+    return null;
+  }, [gpsData, metadata?.bounds]);
 
-  // Extract and format date
+  // Extract and format date (memoized)
   const trackTime = metadata?.time || gpsData?.[0]?.time;
-  const dateInfo = trackTime ? formatDate(trackTime) : null;
+  const dateInfo = useMemo(() => trackTime ? formatDate(trackTime) : null, [trackTime]);
   const timeStr = trackTime ? formatTime(trackTime) : null;
 
   // Auto-lookup wind when we have location and date
+  const { mutate: lookupWindMutate, isPending: isLookingUpWind } = windLookup;
+
   useEffect(() => {
-    if (location && dateInfo && !lookupDone && !windLookup.isPending) {
-      windLookup.mutate(
+    if (location && dateInfo && !lookupDone && !isLookingUpWind) {
+      lookupWindMutate(
         {
           latitude: location.lat,
           longitude: location.lon,
@@ -102,14 +108,15 @@ export function TrackFileCard({
           onSuccess: (result) => {
             setFileWindData(file.id, Math.round(result.wind_direction), result.wind_speed_knots);
           },
-          onError: () => {
-            // Mark done even on error (sets windLookupDone), keep default direction
+          onError: (error) => {
+            // Log the error for debugging, then fall back to default
+            console.warn('Wind lookup failed:', error);
             setFileWindData(file.id, 90, undefined);
           },
         }
       );
     }
-  }, [location, dateInfo, lookupDone, windLookup.isPending, file.id, setFileWindData]);
+  }, [location, dateInfo, lookupDone, isLookingUpWind, file.id, setFileWindData, lookupWindMutate]);
 
   const isCompleted = file.status === 'completed';
   const isUploading = file.status === 'uploading' || file.status === 'processing';
@@ -184,7 +191,7 @@ export function TrackFileCard({
             )}
 
             {/* Wind lookup status */}
-            {windLookup.isPending && (
+            {isLookingUpWind && (
               <div className="flex items-center gap-2 text-blue-600">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span className="text-xs">Looking up wind conditions...</span>

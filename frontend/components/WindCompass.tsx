@@ -98,7 +98,6 @@ export function WindCompass({
 
   const center = size / 2;
   const radius = size / 2 - 8;
-  const innerRadius = radius - 20;
   const arrowLength = radius - 5;
 
   // Calculate arrow end point (wind comes FROM this direction)
