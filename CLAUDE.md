@@ -15,12 +15,15 @@ This file provides guidance to Claude Code when working with this monorepo.
 ```
 foil-lab/
 ├── backend/              # Python FastAPI API
-└── frontend/             # Next.js React app
+└── frontend/             # Next.js React app  <-- THE FRONTEND IS HERE
 ```
 
 Each subdirectory has its own CLAUDE.md with detailed guidance:
 - [backend/CLAUDE.md](backend/CLAUDE.md) - API development, algorithms, services
 - [frontend/CLAUDE.md](frontend/CLAUDE.md) - React components, state, styling
+
+**Note**: There is a deprecated `foil-lab-web` repo that is ONLY a redirect stub.
+Do NOT develop there. All frontend work happens in `foil-lab/frontend/`.
 
 ## Quick Commands
 

@@ -225,6 +225,36 @@ export async function exportAnalysis(
   return response.data;
 }
 
+// Historical wind lookup response
+export interface HistoricalWindResponse {
+  wind_direction: number;
+  wind_speed_kmh: number;
+  wind_speed_knots: number;
+  source: string;
+  location: string;
+  timestamp: string;
+}
+
+/**
+ * Look up historical wind data from Open-Meteo
+ */
+export async function lookupWind(
+  latitude: number,
+  longitude: number,
+  date: string,
+  hour: number = 12
+): Promise<HistoricalWindResponse> {
+  const response = await apiClient.get('/api/lookup-wind', {
+    params: {
+      latitude,
+      longitude,
+      date,
+      hour,
+    },
+  });
+  return response.data;
+}
+
 // React Query key factory for consistent cache keys
 export const apiKeys = {
   all: ['api'] as const,
@@ -234,6 +264,8 @@ export const apiKeys = {
   track: (id: string) => [...apiKeys.tracks(), id] as const,
   trackSegments: (id: string) => [...apiKeys.track(id), 'segments'] as const,
   trackWind: (id: string) => [...apiKeys.track(id), 'wind'] as const,
+  windLookup: (lat: number, lon: number, date: string, hour: number) =>
+    [...apiKeys.all, 'wind-lookup', lat, lon, date, hour] as const,
   analysis: (file: File, params: Partial<AnalysisParameters>) => [
     ...apiKeys.all,
     'analysis',

@@ -14,6 +14,9 @@ export interface FileWithMetadata {
   result?: AnalysisResult;
   gpsData?: GPSPoint[];
   metadata?: GPXMetadata;
+  windDirection?: number; // Looked up or user-set wind direction
+  windSpeed?: number; // Looked up wind speed (knots)
+  windLookupDone?: boolean; // Whether wind lookup has completed
 }
 
 interface UploadState {
@@ -22,12 +25,13 @@ interface UploadState {
   currentFileId: string | null;
   
   // Actions
-  addFile: (file: File) => void;
+  addFile: (file: File) => string; // Returns the generated ID
   removeFile: (id: string) => void;
   updateFileProgress: (id: string, progress: number) => void;
   updateFileStatus: (id: string, status: FileWithMetadata['status'], error?: string) => void;
   setFileResult: (id: string, result: AnalysisResult) => void;
   setFileGPSData: (id: string, gpsData: GPSPoint[], metadata: GPXMetadata) => void;
+  setFileWindData: (id: string, windDirection: number, windSpeed?: number) => void;
   setCurrentFileId: (id: string | null) => void;
   clearCompleted: () => void;
   reset: () => void;
@@ -39,9 +43,9 @@ export const useUploadStore = create<UploadState>()(
     isUploading: false,
     currentFileId: null,
 
-    addFile: (file) =>
+    addFile: (file) => {
+      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       set((state) => {
-        const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         state.files.push({
           file,
           id,
@@ -50,7 +54,9 @@ export const useUploadStore = create<UploadState>()(
           uploadProgress: 0,
           status: 'pending',
         });
-      }),
+      });
+      return id;
+    },
 
     removeFile: (id) =>
       set((state) => {
@@ -94,6 +100,16 @@ export const useUploadStore = create<UploadState>()(
         if (file) {
           file.gpsData = gpsData;
           file.metadata = metadata;
+        }
+      }),
+
+    setFileWindData: (id, windDirection, windSpeed) =>
+      set((state) => {
+        const file = state.files.find((f) => f.id === id);
+        if (file) {
+          file.windDirection = windDirection;
+          file.windSpeed = windSpeed;
+          file.windLookupDone = true;
         }
       }),
 
