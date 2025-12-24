@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ParameterControls } from '@/features/track-analysis/components/ParameterControls';
 import { SimpleAnalysisResults } from '@/components/SimpleAnalysisResults';
+import { AnalysisView } from '@/components/analysis';
 import { TrackUploader } from '@/components/TrackUploader';
 import { TrackNavigator } from '@/components/TrackNavigator';
 import { ComparisonView } from '@/components/ComparisonView';
@@ -338,20 +339,15 @@ export default function AnalyzePage() {
                   {isCompareMode ? (
                     <ComparisonView />
                   ) : (
-                    /* Individual Track Results */
-                    currentResult && (
-                      <Card className="mb-8">
-                        <CardHeader>
-                          <CardTitle>Analysis Results</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <SimpleAnalysisResults 
-                            result={currentResult} 
-                            gpsData={currentFile?.gpsData}
-                            fileId={currentFile?.id}
-                          />
-                        </CardContent>
-                      </Card>
+                    /* Individual Track Results - New Interactive View */
+                    currentResult && currentFile?.gpsData && (
+                      <div className="h-[calc(100vh-280px)] min-h-[600px]">
+                        <AnalysisView
+                          result={currentResult}
+                          gpsData={currentFile.gpsData}
+                          filename={currentFile.name}
+                        />
+                      </div>
                     )
                   )}
                 </>
