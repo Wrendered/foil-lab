@@ -270,12 +270,14 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [x] "X of Y segments active" indicator
 - [x] VMG recalculates based on active segments only
 
-#### Phase 3: Wind Fine-tuning [NEXT]
-- [ ] Draggable wind reference line on polar plot
-- [ ] Or simple number input with +/- buttons
-- [ ] Client-side `angle_to_wind` recalculation (no backend call)
-- [ ] Show: Historical (dotted) / Calculated (dashed) / Current (solid)
-- [ ] Polar dots reposition as wind angle changes
+#### Phase 3: Wind Fine-tuning [DONE - Dec 2024]
+- [x] Wind adjustment controls in header (+/- 5° buttons)
+- [x] Client-side `angle_to_wind` recalculation (no backend call)
+- [x] Polar dots reposition as wind angle changes
+- [x] Segments reclassified as Upwind/Downwind based on new angles
+- [x] Stats (VMG, angles) recalculate live
+- [x] Reset button to restore calculated wind
+- [x] Blue highlight when wind is adjusted
 
 #### Phase 4: Filters for Longer Tracks
 - [ ] Time range slider (filter points before segment detection)

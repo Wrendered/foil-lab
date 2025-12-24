@@ -233,9 +233,10 @@ function calculateStats(segments: Segment[], excludedIds: Set<number>) {
 
 1. **Phase 1** [DONE]: Layout + map-polar linking with hover state
 2. **Phase 2** [DONE]: Segment toggle + live stats recalculation
-3. **Phase 3** [NEXT]: Wind fine-tuning with client-side recalc
-4. **Phase 4**: Time/spatial filters (requires re-analyze)
+3. **Phase 3** [DONE]: Wind fine-tuning with client-side recalc (+/- buttons, live update)
+4. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
 5. **Phase 5**: Averaged performance metrics (top N segments)
+6. **Phase 6**: Auto-analyze on upload
 
 ### Cleanup Notes
 
