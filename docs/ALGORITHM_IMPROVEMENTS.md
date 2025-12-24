@@ -290,6 +290,13 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [ ] Shows more realistic "what can I consistently achieve" picture
 - [ ] Consider weighting by distance (longer segments = more reliable)
 
+#### Phase 6: Auto-Analyze on Upload
+- [ ] Automatically trigger analysis when historical wind is found
+- [ ] Skip the "Analyze Track" button click for smoother flow
+- [ ] Only prompt for manual wind input if historical lookup fails
+- [ ] After analysis, allow wind adjustment via Phase 3 controls
+- [ ] Reduces friction: drop file → see results immediately
+
 ### Cleanup Notes
 
 **Old components to remove** (after ComparisonView is updated):
