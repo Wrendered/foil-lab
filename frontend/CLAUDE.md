@@ -231,10 +231,18 @@ function calculateStats(segments: Segment[], excludedIds: Set<number>) {
 
 ### Implementation Phases
 
-1. **Phase 1** [CURRENT]: Layout + map-polar linking with hover state
-2. **Phase 2**: Segment toggle + live stats recalculation
-3. **Phase 3**: Wind fine-tuning with client-side recalc
+1. **Phase 1** [DONE]: Layout + map-polar linking with hover state
+2. **Phase 2** [DONE]: Segment toggle + live stats recalculation
+3. **Phase 3** [NEXT]: Wind fine-tuning with client-side recalc
 4. **Phase 4**: Time/spatial filters (requires re-analyze)
+5. **Phase 5**: Averaged performance metrics (top N segments)
+
+### Cleanup Notes
+
+Old components kept as fallback (delete after ComparisonView update):
+- `SimpleAnalysisResults.tsx` → replaced by `AnalysisView`
+- `SimplePolarPlot.tsx` → replaced by `LinkedPolarPlot`
+- `SimpleLeafletMap.tsx` → replaced by `TrackMap`
 
 ### Key Data Available
 

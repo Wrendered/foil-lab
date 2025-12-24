@@ -255,21 +255,22 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 
 ### Implementation Phases
 
-#### Phase 1: Layout + Map-Polar Linking [CURRENT]
-- [ ] New `AnalysisView.tsx` component with side-by-side layout
-- [ ] Enhanced map showing track with colored segment overlays
-- [ ] Polar and map share hover/selection state via React context or Zustand
-- [ ] Segment list with basic info (tack, angle, speed, distance)
-- [ ] Hover coordination between all three views
+#### Phase 1: Layout + Map-Polar Linking [DONE - Dec 2024]
+- [x] New `AnalysisView.tsx` component with side-by-side layout
+- [x] Enhanced `TrackMap.tsx` showing track with colored segment overlays
+- [x] `LinkedPolarPlot.tsx` with hover/click interactivity
+- [x] `SegmentList.tsx` with basic info (tack, angle, speed, distance)
+- [x] `viewStore.ts` for shared hover/exclusion state
+- [x] Hover coordination between all three views
 
-#### Phase 2: Segment Toggle + Live Stats
-- [ ] Checkbox/click to include/exclude individual segments
-- [ ] Client-side stats recalculation when segments toggled
-- [ ] Visual distinction: excluded = gray/dashed/faded
-- [ ] "X of Y segments active" indicator
-- [ ] VMG recalculates based on active segments only
+#### Phase 2: Segment Toggle + Live Stats [DONE - Dec 2024]
+- [x] Checkbox/click to include/exclude individual segments
+- [x] Client-side stats recalculation when segments toggled
+- [x] Visual distinction: excluded = gray/dashed/faded
+- [x] "X of Y segments active" indicator
+- [x] VMG recalculates based on active segments only
 
-#### Phase 3: Wind Fine-tuning
+#### Phase 3: Wind Fine-tuning [NEXT]
 - [ ] Draggable wind reference line on polar plot
 - [ ] Or simple number input with +/- buttons
 - [ ] Client-side `angle_to_wind` recalculation (no backend call)
@@ -281,6 +282,23 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [ ] Spatial rectangle selection on map
 - [ ] These require re-analyze (backend call)
 - [ ] Detection settings panel (gear icon → slide-out)
+
+#### Phase 5: Averaged Performance Metrics
+- [ ] "Representative VMG" - average of top N segments (e.g., best 3-5)
+- [ ] "Representative angle" - average angle of top VMG segments
+- [ ] Avoids single-segment outliers skewing perception
+- [ ] Shows more realistic "what can I consistently achieve" picture
+- [ ] Consider weighting by distance (longer segments = more reliable)
+
+### Cleanup Notes
+
+**Old components to remove** (after ComparisonView is updated):
+- `SimpleAnalysisResults.tsx` - replaced by `AnalysisView`
+- `SimplePolarPlot.tsx` - replaced by `LinkedPolarPlot`
+- `SimpleLeafletMap.tsx` - replaced by `TrackMap`
+
+These are currently kept as fallback but can be deleted once ComparisonView
+uses the new interactive components or is redesigned.
 
 ### Technical Considerations
 
