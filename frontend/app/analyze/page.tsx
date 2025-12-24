@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileUpload } from '@/features/track-analysis/components/FileUpload';
 import { ParameterControls } from '@/features/track-analysis/components/ParameterControls';
 import { SimpleAnalysisResults } from '@/components/SimpleAnalysisResults';
-import { WindDirectionInput } from '@/components/WindDirectionInput';
+import { TrackUploader } from '@/components/TrackUploader';
 import { TrackNavigator } from '@/components/TrackNavigator';
 import { ComparisonView } from '@/components/ComparisonView';
 import { useUploadStore } from '@/stores/uploadStore';
@@ -12,11 +11,11 @@ import { useAnalysisStore } from '@/stores/analysisStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientOnly } from '@/components/ClientOnly';
-import { ErrorBoundary, withErrorBoundary } from '@/components/ErrorBoundary';
-import { useConfig, useTrackAnalysis, useBatchAnalysis, useConnectionStatus } from '@/hooks/useApi';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useConfig, useTrackAnalysis, useConnectionStatus } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
-import { Loader2, Wifi, WifiOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { APIError, isAPIError, isNetworkError, isServerError, isClientError } from '@/lib/api-client';
+import { Loader2, Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { isNetworkError, isServerError, isAPIError } from '@/lib/api-client';
 import { DEFAULT_PARAMETERS } from '@/lib/defaults';
 
 export default function AnalyzePage() {
@@ -29,7 +28,6 @@ export default function AnalyzePage() {
   const { data: config, error: configError, isLoading: configLoading } = useConfig();
   const connectionStatus = useConnectionStatus();
   const trackAnalysis = useTrackAnalysis();
-  const batchAnalysis = useBatchAnalysis();
   
   // Get the current file's result
   const currentFile = uploadStore.currentFileId 
@@ -73,17 +71,23 @@ export default function AnalyzePage() {
     }
   }, [connectionStatus.status, addToast]);
 
-  const handleFileSelect = (file: File) => {
+  const handleAnalyzeTrack = (file: File, windDirection: number) => {
     const fileWithMeta = uploadStore.files.find((f) => f.file === file);
     if (!fileWithMeta) return;
 
+    // Update wind direction in params for this analysis
+    const params = {
+      ...analysisStore.parameters,
+      windDirection,
+    };
+
     // Start analysis
     analysisStore.setAnalyzing(true);
-    
+
     trackAnalysis.mutate(
       {
         file,
-        params: analysisStore.parameters,
+        params,
         fileId: fileWithMeta.id,
       },
       {
@@ -188,39 +192,6 @@ export default function AnalyzePage() {
     };
   };
 
-  const handleAnalyzeAll = () => {
-    const pendingFiles = uploadStore.files
-      .filter((f) => f.status === 'pending')
-      .map((f) => ({ file: f.file, fileId: f.id }));
-    
-    if (pendingFiles.length === 0) return;
-
-    batchAnalysis.mutate(
-      {
-        files: pendingFiles,
-        params: analysisStore.parameters,
-      },
-      {
-        onSuccess: (results) => {
-          addToast({
-            title: 'Batch Analysis Complete',
-            description: `Successfully analyzed ${results.length} files`,
-            variant: 'success',
-          });
-        },
-        onError: (error) => {
-          const { title, description } = getErrorMessage(error);
-          addToast({
-            title: `Batch ${title}`,
-            description: `Some files failed to process: ${description}`,
-            variant: 'error',
-            duration: 10000, // Show longer for batch errors
-          });
-        },
-      }
-    );
-  };
-
   // Handle track selection
   const handleTrackSelect = (fileId: string) => {
     uploadStore.setCurrentFileId(fileId);
@@ -291,43 +262,16 @@ export default function AnalyzePage() {
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Wind Direction, File Upload and Parameters */}
+          {/* Left Column - File Upload and Parameters */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Wind Direction - FIRST! */}
-            <WindDirectionInput />
-            
-            {/* File Upload Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload GPX Files</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ErrorBoundary fallback={FileUploadErrorFallback}>
-                  <FileUpload
-                    onFileSelect={handleFileSelect}
-                    multiple={true}
-                    className="mb-4"
-                  />
-                </ErrorBoundary>
-
-                <ClientOnly>
-                  {/* Batch Actions */}
-                  {uploadStore.files.filter((f) => f.status === 'pending').length > 0 && (
-                    <div className="flex justify-end mt-4">
-                      <Button
-                        onClick={handleAnalyzeAll}
-                        disabled={batchAnalysis.isPending || !connectionStatus.isConnected}
-                      >
-                        {batchAnalysis.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Analyze All Files ({uploadStore.files.filter((f) => f.status === 'pending').length})
-                      </Button>
-                    </div>
-                  )}
-                </ClientOnly>
-              </CardContent>
-            </Card>
+            {/* Track Upload Section with integrated wind compass */}
+            <ErrorBoundary fallback={FileUploadErrorFallback}>
+              <TrackUploader
+                onAnalyze={handleAnalyzeTrack}
+                isAnalyzing={analysisStore.isAnalyzing}
+                disabled={!connectionStatus.isConnected}
+              />
+            </ErrorBoundary>
 
             {/* Parameter Controls */}
             <ParameterControls
@@ -338,7 +282,7 @@ export default function AnalyzePage() {
               onReanalyze={() => {
                 // Re-analyze current file with new parameters
                 if (currentFile) {
-                  handleFileSelect(currentFile.file);
+                  handleAnalyzeTrack(currentFile.file, analysisStore.parameters.windDirection);
                 }
               }}
               disabled={analysisStore.isAnalyzing || !connectionStatus.isConnected}

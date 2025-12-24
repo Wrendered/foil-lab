@@ -3,9 +3,11 @@ import {
   getConfig,
   healthCheck,
   analyzeTrack,
+  lookupWind,
   apiKeys,
   AnalysisResult,
   ConfigResponse,
+  HistoricalWindResponse,
   APIError,
 } from '@/lib/api-client';
 import { AnalysisParameters } from '@/stores/analysisStore';
@@ -205,4 +207,23 @@ export function useGlobalErrorHandler() {
     clearErrors,
     retryAll,
   };
+}
+
+// Wind lookup hook
+export function useLookupWind() {
+  return useMutation({
+    mutationFn: async ({
+      latitude,
+      longitude,
+      date,
+      hour,
+    }: {
+      latitude: number;
+      longitude: number;
+      date: string;
+      hour: number;
+    }) => {
+      return lookupWind(latitude, longitude, date, hour);
+    },
+  });
 }
