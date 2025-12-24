@@ -16,6 +16,9 @@ frontend/
 │   ├── analyze/page.tsx       # Track analysis interface
 │   └── globals.css            # Global styles
 ├── components/                # Reusable React components
+│   ├── WindCompass.tsx        # Interactive wind direction compass
+│   ├── TrackFileCard.tsx      # File card with auto wind lookup
+│   ├── TrackUploader.tsx      # Dropzone + file cards
 │   ├── SimpleLeafletMap.tsx   # Map visualization
 │   ├── SimplePolarPlot.tsx    # Polar plot charts
 │   ├── TrackNavigator.tsx     # Multi-track tabs
@@ -67,6 +70,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // GET  /api/config         - Default parameters and ranges
 // POST /api/analyze-track  - GPX file analysis
 // GET  /api/health         - Backend health check
+// GET  /api/lookup-wind    - Historical wind from Open-Meteo
 ```
 
 ## State Management
