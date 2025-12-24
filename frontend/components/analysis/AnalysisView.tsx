@@ -66,7 +66,7 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-slate-800 truncate">{filename}</h2>
           <span className="text-sm text-slate-500">
-            Wind: {windDirection}° ({result.wind_estimate.confidence})
+            Wind: {Math.round(windDirection)}°
           </span>
         </div>
         {onOpenSettings && (

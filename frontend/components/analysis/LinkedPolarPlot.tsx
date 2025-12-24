@@ -141,7 +141,7 @@ export function LinkedPolarPlot({ segments, windDirection, className }: LinkedPo
 
         {/* Wind direction indicator */}
         <text x={centerX} y={centerY - maxRadius - 8} textAnchor="middle" fontSize="10" fill="#374151" fontWeight="600">
-          ↑ Wind {windDirection}°
+          ↑ Wind {Math.round(windDirection)}°
         </text>
 
         {/* Individual segment dots - draw excluded first, then active, then hovered on top */}
