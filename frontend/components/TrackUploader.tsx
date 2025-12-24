@@ -33,17 +33,15 @@ export function TrackUploader({
 
       // Handle accepted files
       for (const file of acceptedFiles) {
-        uploadStore.addFile(file);
+        const fileId = uploadStore.addFile(file);
 
         // Parse metadata immediately after adding
         try {
           const { gpsPoints, metadata } = await parseGPXFile(file);
-          const addedFile = uploadStore.files.find(f => f.file === file);
-          if (addedFile) {
-            uploadStore.setFileGPSData(addedFile.id, gpsPoints, metadata);
-          }
+          uploadStore.setFileGPSData(fileId, gpsPoints, metadata);
         } catch (error) {
           console.error('Failed to parse GPX:', error);
+          uploadStore.updateFileStatus(fileId, 'error', 'Failed to parse GPX file');
         }
       }
 

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { FileText, Calendar, MapPin, Loader2, Check, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { WindCompass } from '@/components/WindCompass';
-import { FileWithMetadata } from '@/stores/uploadStore';
+import { FileWithMetadata, useUploadStore } from '@/stores/uploadStore';
 import { useLookupWind } from '@/hooks/useApi';
 import { cn } from '@/lib/utils';
 
@@ -57,13 +57,21 @@ export function TrackFileCard({
   isAnalyzing = false,
   disabled = false,
 }: TrackFileCardProps) {
-  const [windDirection, setWindDirection] = useState(90); // Default east
-  const [lookupDone, setLookupDone] = useState(false);
-  const [lookupInfo, setLookupInfo] = useState<{ speed: number } | null>(null);
+  const setFileWindData = useUploadStore((state) => state.setFileWindData);
   const windLookup = useLookupWind();
+
+  // Use store values, with fallback to 90 for wind direction
+  const windDirection = file.windDirection ?? 90;
+  const lookupDone = file.windLookupDone ?? false;
+  const windSpeed = file.windSpeed;
 
   const metadata = file.metadata;
   const gpsData = file.gpsData;
+
+  // Handler for compass changes - updates store
+  const handleWindChange = (newDirection: number) => {
+    setFileWindData(file.id, newDirection, windSpeed);
+  };
 
   // Extract location from first GPS point or bounds center
   const location = gpsData?.[0]
@@ -92,17 +100,16 @@ export function TrackFileCard({
         },
         {
           onSuccess: (result) => {
-            setWindDirection(Math.round(result.wind_direction));
-            setLookupInfo({ speed: result.wind_speed_knots });
-            setLookupDone(true);
+            setFileWindData(file.id, Math.round(result.wind_direction), result.wind_speed_knots);
           },
           onError: () => {
-            setLookupDone(true); // Mark done even on error, use default
+            // Mark done even on error (sets windLookupDone), keep default direction
+            setFileWindData(file.id, 90, undefined);
           },
         }
       );
     }
-  }, [location, dateInfo, lookupDone, windLookup]);
+  }, [location, dateInfo, lookupDone, windLookup.isPending, file.id, setFileWindData]);
 
   const isCompleted = file.status === 'completed';
   const isUploading = file.status === 'uploading' || file.status === 'processing';
@@ -183,12 +190,12 @@ export function TrackFileCard({
                 <span className="text-xs">Looking up wind conditions...</span>
               </div>
             )}
-            {lookupInfo && (
+            {lookupDone && windSpeed && (
               <p className="text-xs text-green-700">
-                Historical: {windDirection}° at {lookupInfo.speed.toFixed(1)} kts
+                Historical: {windDirection}° at {windSpeed.toFixed(1)} kts
               </p>
             )}
-            {lookupDone && !lookupInfo && !windLookup.isError && (
+            {lookupDone && !windSpeed && (
               <p className="text-xs text-slate-500">Using default wind direction</p>
             )}
           </div>
@@ -198,7 +205,7 @@ export function TrackFileCard({
             <p className="text-xs text-slate-500 mb-1">Wind from:</p>
             <WindCompass
               value={windDirection}
-              onChange={setWindDirection}
+              onChange={handleWindChange}
               size={100}
               disabled={isAnalyzing || isCompleted}
             />
