@@ -134,8 +134,122 @@ try {
 - Clear `.next/` if seeing stale builds
 - Check console for API errors
 
+## Current Architecture (Dec 2024)
+
+### Existing Components
+
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| `TrackUploader` | Dropzone + renders TrackFileCards for each file | Keep for upload |
+| `TrackFileCard` | Shows file metadata, wind compass, auto-lookups wind | Simplify |
+| `WindCompass` | Interactive SVG compass for wind direction input | Keep |
+| `SimplePolarPlot` | Polar chart showing speed vs angle for upwind segments | Enhance |
+| `SimpleLeafletMap` | Track visualization on map | Enhance significantly |
+| `ParameterControls` | Sliders for analysis parameters (global, not per-file) | Move to settings panel |
+| `TrackNavigator` | Tabs for switching between analyzed tracks | Replace |
+| `ComparisonView` | Side-by-side track comparison | Future phase |
+
+### Data Flow
+
+1. User drops GPX file → `TrackUploader.onDrop` → `uploadStore.addFile`
+2. GPX parsed client-side → `uploadStore.setFileGPSData` (metadata, points)
+3. Auto wind lookup → `useLookupWind` → `uploadStore.setFileWindData`
+4. User clicks Analyze → `handleAnalyzeTrack` → POST `/api/analyze-track`
+5. Results stored in both `uploadStore` (per-file) and `analysisStore` (current view)
+
+---
+
+## UI Overhaul (In Progress - Dec 2024)
+
+See `docs/ALGORITHM_IMPROVEMENTS.md` for full redesign plan.
+
+### Core Insight
+
+The map is **validation** - users need to see WHERE polar data points come from to trust them.
+
+### New Component Architecture
+
+```
+AnalysisView.tsx (new main component)
+├── Header: file selector, settings gear
+├── MainContent (side-by-side)
+│   ├── TrackMap.tsx (enhanced map)
+│   │   └── Shows track + colored segment overlays
+│   │   └── Hover/click → highlights on polar + list
+│   │   └── Wind arrow overlay
+│   └── RightPanel
+│       ├── PolarPlot.tsx (enhanced)
+│       │   └── Linked with map via shared state
+│       │   └── Click dot → toggle segment inclusion
+│       │   └── Wind direction indicator (draggable later)
+│       └── SegmentList.tsx (new)
+│           └── Checkboxes for include/exclude
+│           └── Tack, angle, speed, distance columns
+│           └── Hover → highlights map + polar
+├── StatsBar: VMG, avg speed, active segment count
+└── SettingsPanel (slide-out): detection parameters
+```
+
+### Shared View State
+
+New Zustand store for coordinating map/polar/list:
+
+```typescript
+// stores/viewStore.ts (to be created)
+interface ViewState {
+  hoveredSegmentId: number | null;
+  excludedSegmentIds: Set<number>;
+  adjustedWindDirection: number | null;  // null = use calculated
+
+  // Actions
+  setHoveredSegment: (id: number | null) => void;
+  toggleSegmentExclusion: (id: number) => void;
+  setWindDirection: (degrees: number) => void;
+}
+```
+
+### Client-Side Recalculation
+
+When wind direction changes or segments are toggled, recalculate stats without backend call:
+
+```typescript
+// Recalculate angle_to_wind for each segment
+function recalculateAngles(segments: Segment[], windDirection: number) {
+  return segments.map(s => {
+    let angleToWind = (s.bearing - windDirection + 360) % 360;
+    if (angleToWind > 180) angleToWind = 360 - angleToWind;
+    return { ...s, angle_to_wind: angleToWind };
+  });
+}
+
+// Recalculate stats from active segments only
+function calculateStats(segments: Segment[], excludedIds: Set<number>) {
+  const active = segments.filter(s => !excludedIds.has(s.id));
+  // ... compute avg speed, VMG, etc.
+}
+```
+
+### Implementation Phases
+
+1. **Phase 1** [CURRENT]: Layout + map-polar linking with hover state
+2. **Phase 2**: Segment toggle + live stats recalculation
+3. **Phase 3**: Wind fine-tuning with client-side recalc
+4. **Phase 4**: Time/spatial filters (requires re-analyze)
+
+### Key Data Available
+
+From `uploadStore` after GPX parse:
+- `gpsData: GPSPoint[]` - lat, lon, time for every point
+- `metadata` - track date, bounds, point count
+
+From analysis result:
+- `segments[]` - each has `start_idx`, `end_idx` into gpsData
+- `segments[].bearing` - allows client-side wind adjustment
+- `wind_estimate.direction` - calculated wind
+
 ## Related
 
 - [Root CLAUDE.md](../CLAUDE.md) - Monorepo overview
 - [Backend CLAUDE.md](../backend/CLAUDE.md) - API and algorithms
+- [Algorithm Improvements](../docs/ALGORITHM_IMPROVEMENTS.md) - Roadmap + UI redesign plan
 - [API Documentation](../backend/docs/API-DOCUMENTATION.md)

@@ -150,17 +150,167 @@ angle_to_wind | avg_speed | best_speed | vmg | segment_count
 2. **[DONE] Phase 1.1** - Show GPX context in UI ✓
    - Date and location shown after file upload
 
-3. **[NEXT] Phase 3.1** - Polar data output
-   - Build polar data structure
-   - Visualize speed vs angle
+3. **[DONE] Phase 3.1** - Basic polar visualization ✓
+   - `SimplePolarPlot.tsx` already exists
+   - Shows speed vs angle for upwind segments
+   - Port/starboard separation with distance-weighted circles
+   - VMG computed but not displayed
 
-4. **Phase 3.4** - Track comparison
+4. **[NEXT] UI Overhaul** - See UI_REDESIGN section below
+
+5. **Phase 3.1 Enhancements** (after UI overhaul)
+   - Add VMG visualization to polar
+   - Show best VMG angle highlight
+   - Add downwind polar data
+
+6. **Phase 3.4** - Track comparison
    - Compare stats between different sessions
    - Compare polars across sessions/wings
    - Side-by-side or overlay views
 
-5. **Phase 2.1** - Multi-start validation (if needed)
+7. **Phase 2.1** - Multi-start validation (if needed)
    - Only if users report convergence issues with good starting estimates
+
+---
+
+## UI Redesign Plan
+
+**Updated:** 2024-12-24
+**Status:** IN PROGRESS
+
+### Core Insight: Map is Validation
+
+The map isn't just visualization - it's **validation**. Users need to see WHERE each polar data point came from to trust it. The polar plot is untrustworthy without map confirmation.
+
+### User Workflow
+
+1. **Upload track** → auto-analysis runs
+2. **Look at polar** → see performance envelope
+3. **Use MAP to validate** → "do those polar dots make sense given where I was sailing?"
+4. **Cherry-pick segments** → "these tacks were when I was really pushing"
+5. **Maybe tweak wind 5-15°** → if it looks slightly off
+6. **Trust the refined polar data** → use for gear comparison
+
+### Current Problems (Dec 2024)
+
+**Information Architecture Confusion:**
+- Wind direction is per-file (in TrackFileCard compass)
+- Other parameters (angle tolerance, min speed) are global (in ParameterControls)
+- "Re-analyze Now" uses global params but unclear which file
+
+**Too Many Cards Fighting for Attention:**
+- Connection status card (rarely relevant, always visible)
+- Upload card with completed files (redundant after analysis)
+- Parameters card (most users never touch these sliders)
+- Results card containing everything else
+
+**The Polar Plot is Buried:**
+- Nested inside SimpleAnalysisResults → Card → alongside map
+- Not linked to map in any meaningful way
+
+**Map Underutilized:**
+- Shows track but segments not clearly highlighted
+- No hover/click interaction with polar
+- Can't toggle segment inclusion from map
+
+### New Architecture: Map + Polar Co-Equal
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [track.gpx ▼]                                              [⚙️]   │
+├─────────────────────────────────────┬───────────────────────────────┤
+│                                     │                               │
+│                                     │         POLAR PLOT            │
+│              MAP                    │                               │
+│                                     │   • Linked with map           │
+│   • Track outline (gray)            │   • Hover dot → map highlight │
+│   • Segments colored by tack        │   • Click to toggle inclusion │
+│   • Hover → polar highlight         │   • Wind reference line       │
+│   • Click segment → toggle          │                               │
+│   • Wind arrow overlay              ├───────────────────────────────┤
+│                                     │       SEGMENTS                │
+│                                     │                               │
+│                                     │  [✓] Port  35° 14.2kn  234m  │
+│                                     │  [✓] Stbd  38° 15.1kn  312m  │
+│                                     │  [ ] Port  52°  8.3kn   89m  │
+│                                     │                               │
+├─────────────────────────────────────┴───────────────────────────────┤
+│   VMG Best: 10.7kn @ 38°   │   Avg: 13.8kn   │   12/15 active       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Interaction Model
+
+**Bidirectional Linking:**
+- Hover segment on map → highlights on polar AND in list
+- Hover dot on polar → highlights segment on map AND in list
+- Click anywhere → toggles segment inclusion
+- Excluded segments: gray/dashed on map, faded on polar, unchecked in list
+- Stats update live as you toggle
+
+**Data Already Available:**
+- `uploadStore.gpsData` has raw GPS points for map
+- `segments` have `start_idx`/`end_idx` to link back to GPS points
+- `segments` have `bearing` so we can recalculate `angle_to_wind` client-side when wind changes
+
+### Implementation Phases
+
+#### Phase 1: Layout + Map-Polar Linking [CURRENT]
+- [ ] New `AnalysisView.tsx` component with side-by-side layout
+- [ ] Enhanced map showing track with colored segment overlays
+- [ ] Polar and map share hover/selection state via React context or Zustand
+- [ ] Segment list with basic info (tack, angle, speed, distance)
+- [ ] Hover coordination between all three views
+
+#### Phase 2: Segment Toggle + Live Stats
+- [ ] Checkbox/click to include/exclude individual segments
+- [ ] Client-side stats recalculation when segments toggled
+- [ ] Visual distinction: excluded = gray/dashed/faded
+- [ ] "X of Y segments active" indicator
+- [ ] VMG recalculates based on active segments only
+
+#### Phase 3: Wind Fine-tuning
+- [ ] Draggable wind reference line on polar plot
+- [ ] Or simple number input with +/- buttons
+- [ ] Client-side `angle_to_wind` recalculation (no backend call)
+- [ ] Show: Historical (dotted) / Calculated (dashed) / Current (solid)
+- [ ] Polar dots reposition as wind angle changes
+
+#### Phase 4: Filters for Longer Tracks
+- [ ] Time range slider (filter points before segment detection)
+- [ ] Spatial rectangle selection on map
+- [ ] These require re-analyze (backend call)
+- [ ] Detection settings panel (gear icon → slide-out)
+
+### Technical Considerations
+
+**Client-Side Recalculation:**
+```typescript
+// When wind direction changes, recalculate angle_to_wind for each segment
+function recalculateAngles(segments: Segment[], newWindDirection: number) {
+  return segments.map(s => ({
+    ...s,
+    angle_to_wind: Math.abs((s.bearing - newWindDirection + 360) % 360),
+    // Adjust for >180 to get angle from wind (not to wind)
+  }));
+}
+```
+
+**Shared Selection State:**
+```typescript
+// New store or context for view coordination
+interface ViewState {
+  hoveredSegmentId: number | null;
+  selectedSegmentIds: Set<number>;  // For toggling
+  excludedSegmentIds: Set<number>;  // Segments to exclude from calcs
+}
+```
+
+**Map Segment Rendering:**
+- GPS points already in `uploadStore.gpsData`
+- Segments have `start_idx`/`end_idx` pointing into GPS array
+- Draw polylines for each segment with tack-based colors
+- Track outline in light gray, segments in bold colors
 
 ---
 
