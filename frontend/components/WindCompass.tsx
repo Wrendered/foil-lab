@@ -100,18 +100,21 @@ export function WindCompass({
   const radius = size / 2 - 8;
   const arrowLength = radius - 5;
 
-  // Calculate arrow end point (where wind BLOWS TO, opposite of source)
-  const arrowAngleRad = (value + 90) * (Math.PI / 180);
-  const arrowX = center + Math.cos(arrowAngleRad) * arrowLength;
-  const arrowY = center + Math.sin(arrowAngleRad) * arrowLength;
+  // Calculate indicator position (where wind comes FROM)
+  const arrowAngleRad = (value - 90) * (Math.PI / 180);
+  const indicatorX = center + Math.cos(arrowAngleRad) * arrowLength;
+  const indicatorY = center + Math.sin(arrowAngleRad) * arrowLength;
 
-  // Arrow head points
+  // Arrow head points TOWARD center (showing wind blowing inward)
   const headLength = 12;
   const headAngle = 25 * (Math.PI / 180);
-  const head1X = arrowX - headLength * Math.cos(arrowAngleRad - headAngle);
-  const head1Y = arrowY - headLength * Math.sin(arrowAngleRad - headAngle);
-  const head2X = arrowX - headLength * Math.cos(arrowAngleRad + headAngle);
-  const head2Y = arrowY - headLength * Math.sin(arrowAngleRad + headAngle);
+  // Arrowhead is near the indicator but points toward center
+  const arrowTipX = center + Math.cos(arrowAngleRad) * (arrowLength - 15);
+  const arrowTipY = center + Math.sin(arrowAngleRad) * (arrowLength - 15);
+  const head1X = arrowTipX + headLength * Math.cos(arrowAngleRad - headAngle);
+  const head1Y = arrowTipY + headLength * Math.sin(arrowAngleRad - headAngle);
+  const head2X = arrowTipX + headLength * Math.cos(arrowAngleRad + headAngle);
+  const head2Y = arrowTipY + headLength * Math.sin(arrowAngleRad + headAngle);
 
   const cardinals = [
     { label: 'N', angle: 0 },
@@ -195,27 +198,27 @@ export function WindCompass({
           fill="#3b82f6"
         />
 
-        {/* Wind direction arrow */}
+        {/* Wind direction line from source toward center */}
         <line
-          x1={center}
-          y1={center}
-          x2={arrowX}
-          y2={arrowY}
+          x1={indicatorX}
+          y1={indicatorY}
+          x2={center}
+          y2={center}
           stroke="#3b82f6"
           strokeWidth="3"
           strokeLinecap="round"
         />
 
-        {/* Arrow head */}
+        {/* Arrow head pointing toward center */}
         <polygon
-          points={`${arrowX},${arrowY} ${head1X},${head1Y} ${head2X},${head2Y}`}
+          points={`${arrowTipX},${arrowTipY} ${head1X},${head1Y} ${head2X},${head2Y}`}
           fill="#3b82f6"
         />
 
-        {/* Draggable indicator at arrow tip */}
+        {/* Draggable indicator at source position */}
         <circle
-          cx={arrowX}
-          cy={arrowY}
+          cx={indicatorX}
+          cy={indicatorY}
           r={8}
           fill="#3b82f6"
           stroke="white"
