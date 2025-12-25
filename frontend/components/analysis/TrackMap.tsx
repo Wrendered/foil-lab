@@ -114,10 +114,10 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
       layersRef.current.push(windLine);
     });
 
-    // Add wind arrow at center pointing downwind (where wind goes TO)
+    // Add wind arrow at center pointing downwind (where wind BLOWS TO)
     const arrowLength = maxSpan * 0.15;
-    const arrowStart = getOffsetPoint(arrowLength * 0.5, windRad + Math.PI); // Upwind of center
-    const arrowEnd = getOffsetPoint(arrowLength * 0.5, windRad); // Downwind of center
+    const arrowStart = getOffsetPoint(arrowLength * 0.5, windRad); // Start at upwind side (where wind comes from)
+    const arrowEnd = getOffsetPoint(arrowLength * 0.5, windRad + Math.PI); // End at downwind side (where wind goes)
     const arrowLine = L.polyline([arrowStart, arrowEnd], {
       color: '#7C3AED',
       weight: 3,
@@ -126,16 +126,17 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
     arrowLine.addTo(map);
     layersRef.current.push(arrowLine);
 
-    // Arrowhead
+    // Arrowhead (pointing in flow direction, windRad + PI)
     const headLength = arrowLength * 0.3;
     const headAngle = 0.5; // radians, ~30 degrees
+    const flowRad = windRad + Math.PI; // Direction wind flows TO
     const headLeft: [number, number] = [
-      arrowEnd[0] - headLength * Math.cos(windRad - headAngle),
-      arrowEnd[1] - headLength * Math.sin(windRad - headAngle) / Math.cos((centerLat * Math.PI) / 180),
+      arrowEnd[0] - headLength * Math.cos(flowRad - headAngle),
+      arrowEnd[1] - headLength * Math.sin(flowRad - headAngle) / Math.cos((centerLat * Math.PI) / 180),
     ];
     const headRight: [number, number] = [
-      arrowEnd[0] - headLength * Math.cos(windRad + headAngle),
-      arrowEnd[1] - headLength * Math.sin(windRad + headAngle) / Math.cos((centerLat * Math.PI) / 180),
+      arrowEnd[0] - headLength * Math.cos(flowRad + headAngle),
+      arrowEnd[1] - headLength * Math.sin(flowRad + headAngle) / Math.cos((centerLat * Math.PI) / 180),
     ];
     const arrowHead = L.polyline([headLeft, arrowEnd, headRight], {
       color: '#7C3AED',
@@ -293,7 +294,7 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
         }}
       />
 
-      {/* Wind direction overlay */}
+      {/* Wind direction overlay - arrow shows where wind BLOWS TO */}
       <div
         className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg shadow-md px-3 py-2 flex items-center gap-2 z-[1000]"
         title={`Wind from ${Math.round(windDirection)}°`}
@@ -303,9 +304,9 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
           height="24"
           viewBox="0 0 24 24"
           className="text-purple-600"
-          style={{ transform: `rotate(${windDirection - 90}deg)` }}
+          style={{ transform: `rotate(${windDirection + 90}deg)` }}
         >
-          {/* Arrow pointing right at 0°, rotated to show wind source direction */}
+          {/* Arrow pointing right, rotated to show wind flow direction (where it goes TO) */}
           <path
             d="M2 12 L22 12 M22 12 L16 6 M22 12 L16 18"
             fill="none"
