@@ -2,6 +2,12 @@
 
 import { useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { TrackMap } from './TrackMap';
 import { LinkedPolarPlot } from './LinkedPolarPlot';
 import { SegmentList } from './SegmentList';
@@ -85,7 +91,11 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
     }));
 
     const totalDistance = activeSegments.reduce((sum, s) => sum + s.distance, 0);
-    const weightedSpeed = activeSegments.reduce((sum, s) => sum + s.avg_speed_knots * s.distance, 0) / totalDistance;
+
+    // Guard against division by zero - use simple average as fallback
+    const weightedSpeed = totalDistance > 0
+      ? activeSegments.reduce((sum, s) => sum + s.avg_speed_knots * s.distance, 0) / totalDistance
+      : activeSegments.reduce((sum, s) => sum + s.avg_speed_knots, 0) / activeSegments.length;
 
     const bestVMGSegment = segmentsWithVMG.reduce((best, s) => (s.vmg > best.vmg ? s : best), segmentsWithVMG[0]);
 
@@ -96,8 +106,14 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
     const topSegments = sortedByVMG.slice(0, topN);
 
     const topTotalDistance = topSegments.reduce((sum, s) => sum + s.distance, 0);
-    const repVMG = topSegments.reduce((sum, s) => sum + s.vmg * s.distance, 0) / topTotalDistance;
-    const repAngle = topSegments.reduce((sum, s) => sum + s.angle_to_wind * s.distance, 0) / topTotalDistance;
+
+    // Guard against division by zero - use simple average as fallback
+    const repVMG = topTotalDistance > 0
+      ? topSegments.reduce((sum, s) => sum + s.vmg * s.distance, 0) / topTotalDistance
+      : topSegments.reduce((sum, s) => sum + s.vmg, 0) / topN;
+    const repAngle = topTotalDistance > 0
+      ? topSegments.reduce((sum, s) => sum + s.angle_to_wind * s.distance, 0) / topTotalDistance
+      : topSegments.reduce((sum, s) => sum + s.angle_to_wind, 0) / topN;
 
     return {
       avgSpeed: weightedSpeed,
@@ -200,41 +216,65 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
 
       {/* Stats Bar */}
       <Card className="p-3 flex-shrink-0">
-        <div className="flex items-center justify-around text-center">
-          <div title={`Average of top ${stats.repCount} segments by VMG, weighted by distance`}>
-            <div className="text-xs text-slate-500 uppercase tracking-wide">Rep. VMG</div>
-            <div className="text-lg font-bold text-blue-600">
-              {stats.repVMG.toFixed(1)} kn
-              <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.repAngle.toFixed(0)}°</span>
+        <TooltipProvider delayDuration={100}>
+          <div className="flex items-center justify-around text-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Rep. VMG</div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {stats.repVMG.toFixed(1)} kn
+                    <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.repAngle.toFixed(0)}°</span>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Average of top {stats.repCount} segments by VMG,</p>
+                <p>weighted by distance</p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="h-8 w-px bg-slate-200" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Best VMG</div>
+                  <div className="text-lg font-bold text-purple-600">
+                    {stats.bestVMG.toFixed(1)} kn
+                    <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.bestVMGAngle.toFixed(0)}°</span>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Single best segment VMG</p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="h-8 w-px bg-slate-200" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Avg Speed</div>
+                  <div className="text-lg font-bold text-green-600">{stats.avgSpeed.toFixed(1)} kn</div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Distance-weighted average speed</p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="h-8 w-px bg-slate-200" />
+            <div>
+              <div className="text-xs text-slate-500 uppercase tracking-wide">Segments</div>
+              <div className="text-lg font-bold text-slate-700">
+                {stats.activeCount}
+                <span className="text-sm font-normal text-slate-500">/{stats.totalCount}</span>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-slate-200" />
+            <div>
+              <div className="text-xs text-slate-500 uppercase tracking-wide">Distance</div>
+              <div className="text-lg font-bold text-slate-700">{(stats.totalDistance / 1000).toFixed(2)} km</div>
             </div>
           </div>
-          <div className="h-8 w-px bg-slate-200" />
-          <div title="Single best segment VMG">
-            <div className="text-xs text-slate-500 uppercase tracking-wide">Best VMG</div>
-            <div className="text-lg font-bold text-purple-600">
-              {stats.bestVMG.toFixed(1)} kn
-              <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.bestVMGAngle.toFixed(0)}°</span>
-            </div>
-          </div>
-          <div className="h-8 w-px bg-slate-200" />
-          <div title="Distance-weighted average speed">
-            <div className="text-xs text-slate-500 uppercase tracking-wide">Avg Speed</div>
-            <div className="text-lg font-bold text-green-600">{stats.avgSpeed.toFixed(1)} kn</div>
-          </div>
-          <div className="h-8 w-px bg-slate-200" />
-          <div>
-            <div className="text-xs text-slate-500 uppercase tracking-wide">Segments</div>
-            <div className="text-lg font-bold text-slate-700">
-              {stats.activeCount}
-              <span className="text-sm font-normal text-slate-500">/{stats.totalCount}</span>
-            </div>
-          </div>
-          <div className="h-8 w-px bg-slate-200" />
-          <div>
-            <div className="text-xs text-slate-500 uppercase tracking-wide">Distance</div>
-            <div className="text-lg font-bold text-slate-700">{(stats.totalDistance / 1000).toFixed(2)} km</div>
-          </div>
-        </div>
+        </TooltipProvider>
       </Card>
     </div>
   );

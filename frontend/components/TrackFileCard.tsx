@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { FileText, Calendar, MapPin, Loader2, Check, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -62,6 +62,11 @@ export function TrackFileCard({
   const setFileWindData = useUploadStore((state) => state.setFileWindData);
   const windLookup = useLookupWind();
 
+  // Refs to prevent race conditions in auto-analyze
+  const autoAnalyzeTriggeredRef = useRef(false);
+  const onAnalyzeRef = useRef(onAnalyze);
+  onAnalyzeRef.current = onAnalyze;
+
   // Use store values, with fallback to 90 for wind direction
   const windDirection = file.windDirection ?? 90;
   const lookupDone = file.windLookupDone ?? false;
@@ -112,9 +117,11 @@ export function TrackFileCard({
             setFileWindData(file.id, windDir, result.wind_speed_knots);
 
             // Auto-analyze if enabled and we got valid historical wind
-            if (autoAnalyze && result.wind_speed_knots && !disabled && !isAnalyzing) {
+            // Use refs to prevent race conditions and stale closures
+            if (autoAnalyze && result.wind_speed_knots && !disabled && !autoAnalyzeTriggeredRef.current) {
+              autoAnalyzeTriggeredRef.current = true;
               // Small delay to ensure state is updated before triggering
-              setTimeout(() => onAnalyze(windDir), 100);
+              setTimeout(() => onAnalyzeRef.current(windDir), 100);
             }
           },
           onError: (error) => {
@@ -125,7 +132,7 @@ export function TrackFileCard({
         }
       );
     }
-  }, [location, dateInfo, lookupDone, isLookingUpWind, file.id, setFileWindData, lookupWindMutate, autoAnalyze, disabled, isAnalyzing, onAnalyze]);
+  }, [location, dateInfo, lookupDone, isLookingUpWind, file.id, setFileWindData, lookupWindMutate, autoAnalyze, disabled]);
 
   const isCompleted = file.status === 'completed';
   const isUploading = file.status === 'uploading' || file.status === 'processing';
