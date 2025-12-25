@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { FileText, Calendar, MapPin, Loader2, Check, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,6 +15,7 @@ interface TrackFileCardProps {
   onRemove: () => void;
   isAnalyzing?: boolean;
   disabled?: boolean;
+  autoAnalyze?: boolean; // Auto-trigger analysis when historical wind is found
 }
 
 function formatDate(isoString: string): { date: string; hour: number; displayDate: string } {
@@ -56,9 +57,15 @@ export function TrackFileCard({
   onRemove,
   isAnalyzing = false,
   disabled = false,
+  autoAnalyze = true,
 }: TrackFileCardProps) {
   const setFileWindData = useUploadStore((state) => state.setFileWindData);
   const windLookup = useLookupWind();
+
+  // Refs to prevent race conditions in auto-analyze
+  const autoAnalyzeTriggeredRef = useRef(false);
+  const onAnalyzeRef = useRef(onAnalyze);
+  onAnalyzeRef.current = onAnalyze;
 
   // Use store values, with fallback to 90 for wind direction
   const windDirection = file.windDirection ?? 90;
@@ -106,7 +113,16 @@ export function TrackFileCard({
         },
         {
           onSuccess: (result) => {
-            setFileWindData(file.id, Math.round(result.wind_direction), result.wind_speed_knots);
+            const windDir = Math.round(result.wind_direction);
+            setFileWindData(file.id, windDir, result.wind_speed_knots);
+
+            // Auto-analyze if enabled and we got valid historical wind
+            // Use refs to prevent race conditions and stale closures
+            if (autoAnalyze && result.wind_speed_knots && !disabled && !autoAnalyzeTriggeredRef.current) {
+              autoAnalyzeTriggeredRef.current = true;
+              // Small delay to ensure state is updated before triggering
+              setTimeout(() => onAnalyzeRef.current(windDir), 100);
+            }
           },
           onError: (error) => {
             // Log the error for debugging, then fall back to default
@@ -116,7 +132,7 @@ export function TrackFileCard({
         }
       );
     }
-  }, [location, dateInfo, lookupDone, isLookingUpWind, file.id, setFileWindData, lookupWindMutate]);
+  }, [location, dateInfo, lookupDone, isLookingUpWind, file.id, setFileWindData, lookupWindMutate, autoAnalyze, disabled]);
 
   const isCompleted = file.status === 'completed';
   const isUploading = file.status === 'uploading' || file.status === 'processing';
@@ -197,13 +213,19 @@ export function TrackFileCard({
                 <span className="text-xs">Looking up wind conditions...</span>
               </div>
             )}
-            {lookupDone && windSpeed && (
+            {lookupDone && windSpeed && !isAnalyzing && !isCompleted && (
+              <p className="text-xs text-green-700">
+                Historical: {windDirection}° at {windSpeed.toFixed(1)} kts
+                {autoAnalyze && <span className="text-blue-600 ml-1">• Auto-analyzing...</span>}
+              </p>
+            )}
+            {lookupDone && windSpeed && (isAnalyzing || isCompleted) && (
               <p className="text-xs text-green-700">
                 Historical: {windDirection}° at {windSpeed.toFixed(1)} kts
               </p>
             )}
             {lookupDone && !windSpeed && (
-              <p className="text-xs text-slate-500">Using default wind direction</p>
+              <p className="text-xs text-slate-500">Wind lookup unavailable - set manually</p>
             )}
           </div>
 
@@ -235,23 +257,26 @@ export function TrackFileCard({
         </div>
       )}
 
-      {/* Analyze button */}
+      {/* Analyze button - only show if not auto-analyzing or if wind lookup failed */}
       {metadata && !isCompleted && !hasError && (
         <div className="mt-4">
-          <Button
-            onClick={() => onAnalyze(windDirection)}
-            disabled={!canAnalyze}
-            className="w-full"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Analyzing...
-              </>
-            ) : (
-              'Analyze Track'
-            )}
-          </Button>
+          {isAnalyzing ? (
+            <Button disabled className="w-full">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Analyzing...
+            </Button>
+          ) : (
+            /* Show button if: no wind speed (lookup failed), or autoAnalyze is disabled */
+            (!windSpeed || !autoAnalyze) && lookupDone && (
+              <Button
+                onClick={() => onAnalyze(windDirection)}
+                disabled={!canAnalyze}
+                className="w-full"
+              >
+                Analyze Track
+              </Button>
+            )
+          )}
         </div>
       )}
 
