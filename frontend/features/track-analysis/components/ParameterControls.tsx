@@ -49,14 +49,14 @@ const PARAMETER_INFO = {
   minDistance: {
     label: 'Minimum Distance',
     unit: 'm',
-    description: 'Skip segments shorter than this',
-    example: 'Filters brief maneuvers and GPS jitter. Increase for cleaner data on long tracks',
+    description: 'Only count segments longer than this',
+    example: 'Filters out brief gusts and condition shifts. Focus on sustained tacks, not lucky spurts',
   },
   minDuration: {
     label: 'Minimum Duration',
     unit: 's',
-    description: 'Skip segments shorter than this time',
-    example: 'Filters quick tacks and transitions. Increase to focus on sustained runs only',
+    description: 'Only count segments lasting longer than this',
+    example: 'Ensures you held that angle consistently. Short bursts from gusts get filtered out',
   },
 };
 
