@@ -164,9 +164,10 @@ export function ComparisonView() {
                   <thead>
                     <tr className="border-b text-left">
                       <th className="p-2 font-medium">Track</th>
-                      <th className="p-2 font-medium text-right">Rep VMG</th>
-                      <th className="p-2 font-medium text-right">Best VMG</th>
-                      <th className="p-2 font-medium text-right">Avg Speed</th>
+                      <th className="p-2 font-medium text-right" title="Average of top 3 VMG segments">Rep VMG</th>
+                      <th className="p-2 font-medium text-right" title="Average of top 3 tightest angles">Rep Angle</th>
+                      <th className="p-2 font-medium text-right" title="Average of top 3 fastest segments">Rep Speed</th>
+                      <th className="p-2 font-medium text-right" title="Historical wind speed">Wind</th>
                       <th className="p-2 font-medium text-right">Segments</th>
                     </tr>
                   </thead>
@@ -174,21 +175,40 @@ export function ComparisonView() {
                     {comparisonTracks.map((track) => {
                       const file = analyzedFiles.find((f) => f.id === track.id);
                       const result = file?.result;
-                      const metrics = result?.performance_metrics;
                       const color = TRACK_COLORS[track.colorIndex];
                       const isHovered = hoveredTrackId === track.id;
 
-                      // Calculate VMG for each segment and get top 3
+                      // Get upwind segments with calculated VMG
                       const calcVMG = (s: { avg_speed_knots: number; angle_to_wind: number }) =>
                         s.avg_speed_knots * Math.cos((s.angle_to_wind * Math.PI) / 180);
 
                       const upwindSegments = (result?.segments || [])
                         .filter((s) => s.direction === 'Upwind')
-                        .map((s) => ({ ...s, vmg: calcVMG(s) }))
-                        .sort((a, b) => b.vmg - a.vmg);
-                      const top3 = upwindSegments.slice(0, 3);
-                      const repVMG =
-                        top3.length > 0 ? top3.reduce((sum, s) => sum + s.vmg, 0) / top3.length : null;
+                        .map((s) => ({ ...s, vmg: calcVMG(s) }));
+
+                      // Rep VMG: avg of top 3 by VMG
+                      const byVMG = [...upwindSegments].sort((a, b) => b.vmg - a.vmg);
+                      const top3VMG = byVMG.slice(0, 3);
+                      const repVMG = top3VMG.length > 0
+                        ? top3VMG.reduce((sum, s) => sum + s.vmg, 0) / top3VMG.length
+                        : null;
+
+                      // Rep Angle: avg of top 3 tightest angles (lowest angle_to_wind)
+                      const byAngle = [...upwindSegments].sort((a, b) => a.angle_to_wind - b.angle_to_wind);
+                      const top3Angle = byAngle.slice(0, 3);
+                      const repAngle = top3Angle.length > 0
+                        ? top3Angle.reduce((sum, s) => sum + s.angle_to_wind, 0) / top3Angle.length
+                        : null;
+
+                      // Rep Speed: avg of top 3 fastest segments
+                      const bySpeed = [...upwindSegments].sort((a, b) => b.avg_speed_knots - a.avg_speed_knots);
+                      const top3Speed = bySpeed.slice(0, 3);
+                      const repSpeed = top3Speed.length > 0
+                        ? top3Speed.reduce((sum, s) => sum + s.avg_speed_knots, 0) / top3Speed.length
+                        : null;
+
+                      // Wind speed from historical lookup
+                      const windSpeed = file?.windSpeed;
 
                       return (
                         <tr
@@ -215,10 +235,13 @@ export function ComparisonView() {
                             {repVMG ? formatSpeed(repVMG) : '-'}
                           </td>
                           <td className="p-2 text-right">
-                            {metrics?.vmg_upwind ? formatSpeed(metrics.vmg_upwind) : '-'}
+                            {repAngle ? `${repAngle.toFixed(0)}°` : '-'}
                           </td>
                           <td className="p-2 text-right">
-                            {metrics?.avg_speed ? formatSpeed(metrics.avg_speed) : '-'}
+                            {repSpeed ? formatSpeed(repSpeed) : '-'}
+                          </td>
+                          <td className="p-2 text-right text-slate-500">
+                            {windSpeed ? `${windSpeed.toFixed(0)} kts` : '-'}
                           </td>
                           <td className="p-2 text-right">{result?.segments?.length ?? 0}</td>
                         </tr>
