@@ -6,8 +6,72 @@ import { useUploadStore } from '@/stores/uploadStore';
 import { formatSpeed } from '@/lib/colors';
 import { ComparisonPolarPlot, ComparisonTrack, TRACK_COLORS } from '@/components/analysis/ComparisonPolarPlot';
 import { cn } from '@/lib/utils';
+import { Pencil, Check } from 'lucide-react';
 
 const MAX_TRACKS = 4;
+
+function EditableTrackName({
+  fileId,
+  displayName,
+  fileName,
+  color,
+}: {
+  fileId: string;
+  displayName?: string;
+  fileName: string;
+  color: string;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(displayName || fileName.replace('.gpx', ''));
+  const setDisplayName = useUploadStore((state) => state.setDisplayName);
+
+  const handleSave = () => {
+    setDisplayName(fileId, editValue);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') {
+      setEditValue(displayName || fileName.replace('.gpx', ''));
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1">
+        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="flex-1 px-1 py-0.5 text-sm border rounded min-w-0"
+        />
+        <button onClick={handleSave} className="p-0.5 hover:bg-slate-200 rounded">
+          <Check className="h-3 w-3 text-green-600" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 group">
+      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+      <span className="font-medium">{displayName || fileName.replace('.gpx', '')}</span>
+      <button
+        onClick={() => setIsEditing(true)}
+        className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded transition-opacity"
+        title="Edit name"
+      >
+        <Pencil className="h-3 w-3 text-slate-400" />
+      </button>
+    </div>
+  );
+}
 
 export function ComparisonView() {
   const { files } = useUploadStore();
@@ -24,7 +88,7 @@ export function ComparisonView() {
     if (selectedTrackIds.size === 0 && analyzedFiles.length >= 2) {
       setSelectedTrackIds(new Set(analyzedFiles.slice(0, 2).map((f) => f.id)));
     }
-  }, [analyzedFiles.length]); // Only run when file count changes
+  }, [analyzedFiles.length]);
 
   // Toggle track selection
   const toggleTrack = (trackId: string) => {
@@ -46,7 +110,7 @@ export function ComparisonView() {
       .filter((f) => selectedTrackIds.has(f.id))
       .map((f) => ({
         id: f.id,
-        name: f.name,
+        name: f.displayName || f.name,
         segments: f.result?.segments || [],
         windDirection: f.result?.wind_estimate?.direction || 0,
         colorIndex: colorIndex++,
@@ -67,13 +131,7 @@ export function ComparisonView() {
     const avgVMG = vmgValues.length > 0 ? vmgValues.reduce((a, b) => a + b, 0) / vmgValues.length : null;
     const bestVMG = vmgValues.length > 0 ? Math.max(...vmgValues) : null;
 
-    const speedValues = allResults
-      .map((r) => r.performance_metrics?.avg_speed)
-      .filter((v): v is number => v !== null && v !== undefined);
-
-    const avgSpeed = speedValues.length > 0 ? speedValues.reduce((a, b) => a + b, 0) / speedValues.length : null;
-
-    return { avgVMG, bestVMG, avgSpeed, trackCount: comparisonTracks.length };
+    return { avgVMG, bestVMG, trackCount: comparisonTracks.length };
   }, [analyzedFiles, selectedTrackIds, comparisonTracks.length]);
 
   if (analyzedFiles.length < 2) {
@@ -97,7 +155,7 @@ export function ComparisonView() {
         </CardHeader>
         <CardContent className="pt-0">
           <div className="grid grid-cols-2 gap-2">
-            {analyzedFiles.map((file, idx) => {
+            {analyzedFiles.map((file) => {
               const isSelected = selectedTrackIds.has(file.id);
               const isDisabled = !isSelected && selectedTrackIds.size >= MAX_TRACKS;
               const colorIndex = comparisonTracks.findIndex((t) => t.id === file.id);
@@ -128,7 +186,9 @@ export function ComparisonView() {
                       style={{ backgroundColor: color.fill }}
                     />
                   )}
-                  <span className="text-sm truncate">{file.name.replace('.gpx', '')}</span>
+                  <span className="text-sm truncate">
+                    {file.displayName || file.name.replace('.gpx', '')}
+                  </span>
                 </label>
               );
             })}
@@ -153,119 +213,101 @@ export function ComparisonView() {
             </CardContent>
           </Card>
 
-          {/* Comparison Stats Table */}
+          {/* Comparison Stats - Two-line rows */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Performance Comparison</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-2 font-medium">Track</th>
-                      <th className="p-2 font-medium text-right" title="Average of top 3 VMG segments">Rep VMG</th>
-                      <th className="p-2 font-medium text-right" title="Average of top 3 tightest angles">Rep Angle</th>
-                      <th className="p-2 font-medium text-right" title="Average of top 3 fastest segments">Rep Speed</th>
-                      <th className="p-2 font-medium text-right" title="Historical wind speed">Wind</th>
-                      <th className="p-2 font-medium text-right">Segments</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {comparisonTracks.map((track) => {
-                      const file = analyzedFiles.find((f) => f.id === track.id);
-                      const result = file?.result;
-                      const color = TRACK_COLORS[track.colorIndex];
-                      const isHovered = hoveredTrackId === track.id;
+            <CardContent className="space-y-3">
+              {comparisonTracks.map((track) => {
+                const file = analyzedFiles.find((f) => f.id === track.id);
+                const result = file?.result;
+                const color = TRACK_COLORS[track.colorIndex];
+                const isHovered = hoveredTrackId === track.id;
 
-                      // Get upwind segments with calculated VMG
-                      const calcVMG = (s: { avg_speed_knots: number; angle_to_wind: number }) =>
-                        s.avg_speed_knots * Math.cos((s.angle_to_wind * Math.PI) / 180);
+                // Get upwind segments with calculated VMG
+                const calcVMG = (s: { avg_speed_knots: number; angle_to_wind: number }) =>
+                  s.avg_speed_knots * Math.cos((s.angle_to_wind * Math.PI) / 180);
 
-                      const upwindSegments = (result?.segments || [])
-                        .filter((s) => s.direction === 'Upwind')
-                        .map((s) => ({ ...s, vmg: calcVMG(s) }));
+                const upwindSegments = (result?.segments || [])
+                  .filter((s) => s.direction === 'Upwind')
+                  .map((s) => ({ ...s, vmg: calcVMG(s) }));
 
-                      // Rep VMG: avg of top 3 by VMG
-                      const byVMG = [...upwindSegments].sort((a, b) => b.vmg - a.vmg);
-                      const top3VMG = byVMG.slice(0, 3);
-                      const repVMG = top3VMG.length > 0
-                        ? top3VMG.reduce((sum, s) => sum + s.vmg, 0) / top3VMG.length
-                        : null;
+                // Rep VMG: avg of top 3 by VMG
+                const byVMG = [...upwindSegments].sort((a, b) => b.vmg - a.vmg);
+                const top3VMG = byVMG.slice(0, 3);
+                const repVMG = top3VMG.length > 0
+                  ? top3VMG.reduce((sum, s) => sum + s.vmg, 0) / top3VMG.length
+                  : null;
 
-                      // Rep Angle: avg of top 3 tightest angles (lowest angle_to_wind)
-                      const byAngle = [...upwindSegments].sort((a, b) => a.angle_to_wind - b.angle_to_wind);
-                      const top3Angle = byAngle.slice(0, 3);
-                      const repAngle = top3Angle.length > 0
-                        ? top3Angle.reduce((sum, s) => sum + s.angle_to_wind, 0) / top3Angle.length
-                        : null;
+                // Rep Angle: avg of top 3 tightest angles
+                const byAngle = [...upwindSegments].sort((a, b) => a.angle_to_wind - b.angle_to_wind);
+                const top3Angle = byAngle.slice(0, 3);
+                const repAngle = top3Angle.length > 0
+                  ? top3Angle.reduce((sum, s) => sum + s.angle_to_wind, 0) / top3Angle.length
+                  : null;
 
-                      // Rep Speed: avg of top 3 fastest segments
-                      const bySpeed = [...upwindSegments].sort((a, b) => b.avg_speed_knots - a.avg_speed_knots);
-                      const top3Speed = bySpeed.slice(0, 3);
-                      const repSpeed = top3Speed.length > 0
-                        ? top3Speed.reduce((sum, s) => sum + s.avg_speed_knots, 0) / top3Speed.length
-                        : null;
+                // Rep Speed: avg of top 3 fastest segments
+                const bySpeed = [...upwindSegments].sort((a, b) => b.avg_speed_knots - a.avg_speed_knots);
+                const top3Speed = bySpeed.slice(0, 3);
+                const repSpeed = top3Speed.length > 0
+                  ? top3Speed.reduce((sum, s) => sum + s.avg_speed_knots, 0) / top3Speed.length
+                  : null;
 
-                      // Wind speed from historical lookup
-                      const windSpeed = file?.windSpeed;
+                // Wind speed from historical lookup
+                const windSpeed = file?.windSpeed;
+                const segmentCount = result?.segments?.length ?? 0;
 
-                      return (
-                        <tr
-                          key={track.id}
-                          className={cn(
-                            'border-b transition-colors',
-                            isHovered ? 'bg-yellow-50' : 'hover:bg-slate-50'
-                          )}
-                          onMouseEnter={() => setHoveredTrackId(track.id)}
-                          onMouseLeave={() => setHoveredTrackId(null)}
-                        >
-                          <td className="p-2">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: color.fill }}
-                              />
-                              <span className="truncate max-w-[120px]">
-                                {track.name.replace('.gpx', '')}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-2 text-right font-medium">
-                            {repVMG ? formatSpeed(repVMG) : '-'}
-                          </td>
-                          <td className="p-2 text-right">
-                            {repAngle ? `${repAngle.toFixed(0)}°` : '-'}
-                          </td>
-                          <td className="p-2 text-right">
-                            {repSpeed ? formatSpeed(repSpeed) : '-'}
-                          </td>
-                          <td className="p-2 text-right text-slate-500">
-                            {windSpeed ? `${windSpeed.toFixed(0)} kts` : '-'}
-                          </td>
-                          <td className="p-2 text-right">{result?.segments?.length ?? 0}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                return (
+                  <div
+                    key={track.id}
+                    className={cn(
+                      'p-3 rounded-lg border transition-colors',
+                      isHovered ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-transparent'
+                    )}
+                    onMouseEnter={() => setHoveredTrackId(track.id)}
+                    onMouseLeave={() => setHoveredTrackId(null)}
+                  >
+                    {/* Line 1: Track name (editable) */}
+                    <EditableTrackName
+                      fileId={file?.id || ''}
+                      displayName={file?.displayName}
+                      fileName={file?.name || ''}
+                      color={color.fill}
+                    />
 
-              {/* Summary row */}
+                    {/* Line 2: Stats */}
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+                      <span title="Rep VMG (avg top 3)">
+                        <span className="text-slate-400">VMG:</span>{' '}
+                        <span className="font-medium text-slate-800">{repVMG ? formatSpeed(repVMG) : '-'}</span>
+                      </span>
+                      <span title="Rep Angle (avg top 3 tightest)">
+                        <span className="text-slate-400">Angle:</span>{' '}
+                        <span className="font-medium text-slate-800">{repAngle ? `${repAngle.toFixed(0)}°` : '-'}</span>
+                      </span>
+                      <span title="Rep Speed (avg top 3 fastest)">
+                        <span className="text-slate-400">Speed:</span>{' '}
+                        <span className="font-medium text-slate-800">{repSpeed ? formatSpeed(repSpeed) : '-'}</span>
+                      </span>
+                      <span title="Historical wind speed">
+                        <span className="text-slate-400">Wind:</span>{' '}
+                        <span className="text-slate-600">{windSpeed ? `${windSpeed.toFixed(0)} kts` : '-'}</span>
+                      </span>
+                      <span title="Number of segments">
+                        <span className="text-slate-400">Seg:</span>{' '}
+                        <span className="text-slate-600">{segmentCount}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Summary */}
               {aggregateStats && (
-                <div className="mt-4 pt-3 border-t text-xs text-slate-600">
-                  <div className="flex justify-between">
-                    <span>Average VMG across tracks:</span>
-                    <span className="font-medium">
-                      {aggregateStats.avgVMG ? formatSpeed(aggregateStats.avgVMG) : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span>Best VMG (any track):</span>
-                    <span className="font-medium">
-                      {aggregateStats.bestVMG ? formatSpeed(aggregateStats.bestVMG) : '-'}
-                    </span>
-                  </div>
+                <div className="pt-3 border-t text-xs text-slate-500 flex justify-between">
+                  <span>Avg VMG: {aggregateStats.avgVMG ? formatSpeed(aggregateStats.avgVMG) : '-'}</span>
+                  <span>Best VMG: {aggregateStats.bestVMG ? formatSpeed(aggregateStats.bestVMG) : '-'}</span>
                 </div>
               )}
             </CardContent>

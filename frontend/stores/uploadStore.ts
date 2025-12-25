@@ -7,6 +7,7 @@ export interface FileWithMetadata {
   file: File;
   id: string;
   name: string;
+  displayName?: string; // User-editable name for the track
   size: number;
   uploadProgress: number;
   status: 'pending' | 'uploading' | 'processing' | 'completed' | 'error';
@@ -32,6 +33,7 @@ interface UploadState {
   setFileResult: (id: string, result: AnalysisResult) => void;
   setFileGPSData: (id: string, gpsData: GPSPoint[], metadata: GPXMetadata) => void;
   setFileWindData: (id: string, windDirection: number, windSpeed?: number) => void;
+  setDisplayName: (id: string, displayName: string) => void;
   setCurrentFileId: (id: string | null) => void;
   clearCompleted: () => void;
   reset: () => void;
@@ -110,6 +112,14 @@ export const useUploadStore = create<UploadState>()(
           file.windDirection = windDirection;
           file.windSpeed = windSpeed;
           file.windLookupDone = true;
+        }
+      }),
+
+    setDisplayName: (id, displayName) =>
+      set((state) => {
+        const file = state.files.find((f) => f.id === id);
+        if (file) {
+          file.displayName = displayName.trim() || undefined;
         }
       }),
 
