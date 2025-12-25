@@ -37,8 +37,8 @@ const PARAMETER_INFO = {
   angleTolerance: {
     label: 'Angle Tolerance',
     unit: '°',
-    description: 'How far off true upwind still counts as "upwind"',
-    example: 'At 25°, any heading within 25° of directly into the wind is considered upwind sailing',
+    description: 'How much heading variation allowed within one tack/run',
+    example: 'At 25°, a segment stays "one tack" if heading stays within ±25°. Lower = stricter, may split wobbly runs',
   },
   minSpeed: {
     label: 'Minimum Speed',
