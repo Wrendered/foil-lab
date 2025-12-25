@@ -118,9 +118,9 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
           <div className="flex items-center gap-1.5 bg-slate-100 rounded-lg px-2 py-1">
             <span className="text-sm text-slate-600">Wind:</span>
             <button
-              onClick={() => handleWindChange(-5)}
+              onClick={() => handleWindChange(-2)}
               className="p-1 hover:bg-slate-200 rounded transition-colors"
-              title="Decrease 5°"
+              title="Decrease 2°"
             >
               <Minus className="h-3.5 w-3.5 text-slate-600" />
             </button>
@@ -128,9 +128,9 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
               {effectiveWind}°
             </span>
             <button
-              onClick={() => handleWindChange(5)}
+              onClick={() => handleWindChange(2)}
               className="p-1 hover:bg-slate-200 rounded transition-colors"
-              title="Increase 5°"
+              title="Increase 2°"
             >
               <Plus className="h-3.5 w-3.5 text-slate-600" />
             </button>

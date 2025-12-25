@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
 
 interface ViewState {
   // Hover state - which segment is being hovered (in map, polar, or list)
@@ -20,51 +19,37 @@ interface ViewState {
   reset: () => void;
 }
 
-export const useViewStore = create<ViewState>()(
-  immer((set) => ({
-    hoveredSegmentId: null,
-    excludedSegmentIds: new Set(),
-    adjustedWindDirection: null,
+export const useViewStore = create<ViewState>()((set) => ({
+  hoveredSegmentId: null,
+  excludedSegmentIds: new Set(),
+  adjustedWindDirection: null,
 
-    setHoveredSegment: (id) =>
-      set((state) => {
-        state.hoveredSegmentId = id;
-      }),
+  setHoveredSegment: (id) => set({ hoveredSegmentId: id }),
 
-    toggleSegmentExclusion: (id) =>
-      set((state) => {
-        const newSet = new Set(state.excludedSegmentIds);
-        if (newSet.has(id)) {
-          newSet.delete(id);
-        } else {
-          newSet.add(id);
-        }
-        state.excludedSegmentIds = newSet;
-      }),
+  toggleSegmentExclusion: (id) =>
+    set((state) => {
+      const newSet = new Set(state.excludedSegmentIds);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return { excludedSegmentIds: newSet };
+    }),
 
-    setExcludedSegments: (ids) =>
-      set((state) => {
-        state.excludedSegmentIds = ids;
-      }),
+  setExcludedSegments: (ids) => set({ excludedSegmentIds: ids }),
 
-    clearExcludedSegments: () =>
-      set((state) => {
-        state.excludedSegmentIds = new Set();
-      }),
+  clearExcludedSegments: () => set({ excludedSegmentIds: new Set() }),
 
-    setWindDirection: (degrees) =>
-      set((state) => {
-        state.adjustedWindDirection = degrees;
-      }),
+  setWindDirection: (degrees) => set({ adjustedWindDirection: degrees }),
 
-    reset: () =>
-      set((state) => {
-        state.hoveredSegmentId = null;
-        state.excludedSegmentIds = new Set();
-        state.adjustedWindDirection = null;
-      }),
-  }))
-);
+  reset: () =>
+    set({
+      hoveredSegmentId: null,
+      excludedSegmentIds: new Set(),
+      adjustedWindDirection: null,
+    }),
+}));
 
 // Selector hooks for performance
 export const useHoveredSegment = () => useViewStore((state) => state.hoveredSegmentId);
