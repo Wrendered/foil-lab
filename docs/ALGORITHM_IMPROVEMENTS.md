@@ -131,7 +131,7 @@ angle_to_wind | avg_speed | best_speed | vmg | segment_count
 - Compare polars across sessions/wings
 - Normalize for wind speed if known
 
-**3.4 Track Comparison UI** [PLANNED - Dec 2024]
+**3.4 Track Comparison UI** [DONE - Dec 2024]
 
 Approach: Overlay polar + stats table (simple, compact, interactive)
 
@@ -196,21 +196,21 @@ Approach: Overlay polar + stats table (simple, compact, interactive)
    - Auto-analyze on upload
    - Collapsible parameters with tooltips
 
-5. **[NEXT] Phase 3.4** - Track comparison
+5. **[DONE] Phase 3.4** - Track comparison ✓
    - Overlay polar plot (2-4 tracks, distinct colors)
    - Comparison stats table
    - Hover interaction across polar + table
-   - See detailed plan above
+   - Old Simple* components removed
 
-6. **Phase 3.1 Enhancements** (after comparison)
-   - Add VMG visualization to polar
-   - Show best VMG angle highlight
-   - Add downwind polar data
-
-7. **Phase 4** - Time/spatial filters for longer tracks
+6. **[NEXT] Phase 4** - Time/spatial filters for longer tracks
    - Time range slider (filter points before segment detection)
    - Spatial rectangle selection on map
    - Requires re-analyze (backend call)
+
+7. **Phase 3.1 Enhancements** (future)
+   - Add VMG visualization to polar
+   - Show best VMG angle highlight
+   - Add downwind polar data
 
 8. **Phase 2.1** - Multi-start validation (if needed)
    - Only if users report convergence issues with good starting estimates
@@ -359,13 +359,12 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 
 ### Cleanup Notes
 
-**Old components to remove** (after ComparisonView is updated):
-- `SimpleAnalysisResults.tsx` - replaced by `AnalysisView`
-- `SimplePolarPlot.tsx` - replaced by `LinkedPolarPlot`
-- `SimpleLeafletMap.tsx` - replaced by `TrackMap`
+**Old components removed** (Dec 2024):
+- ~~`SimpleAnalysisResults.tsx`~~ - replaced by `AnalysisView` ✓
+- ~~`SimplePolarPlot.tsx`~~ - replaced by `LinkedPolarPlot` ✓
+- ~~`SimpleLeafletMap.tsx`~~ - replaced by `TrackMap` ✓
 
-These are currently kept as fallback but can be deleted once ComparisonView
-uses the new interactive components or is redesigned.
+ComparisonView now uses `ComparisonPolarPlot` for multi-track overlay.
 
 ### Technical Considerations
 

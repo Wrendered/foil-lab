@@ -1,88 +1,82 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useUploadStore } from '@/stores/uploadStore';
-import { formatSpeed, formatAngle, formatDistance, formatDuration } from '@/lib/colors';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Minus,
-  Wind,
-  Gauge,
-  Navigation,
-  Clock
-} from 'lucide-react';
+import { formatSpeed } from '@/lib/colors';
+import { ComparisonPolarPlot, ComparisonTrack, TRACK_COLORS } from '@/components/analysis/ComparisonPolarPlot';
+import { cn } from '@/lib/utils';
+
+const MAX_TRACKS = 4;
 
 export function ComparisonView() {
   const { files } = useUploadStore();
-  
+  const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
+  const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null);
+
   // Get all analyzed files
-  const analyzedFiles = files.filter(f => 
-    f.status === 'completed' && f.result
-  );
+  const analyzedFiles = useMemo(() => {
+    return files.filter((f) => f.status === 'completed' && f.result);
+  }, [files]);
 
-  // Calculate aggregate statistics
+  // Auto-select first 2 tracks on mount if none selected
+  useMemo(() => {
+    if (selectedTrackIds.size === 0 && analyzedFiles.length >= 2) {
+      setSelectedTrackIds(new Set(analyzedFiles.slice(0, 2).map((f) => f.id)));
+    }
+  }, [analyzedFiles.length]); // Only run when file count changes
+
+  // Toggle track selection
+  const toggleTrack = (trackId: string) => {
+    setSelectedTrackIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(trackId)) {
+        next.delete(trackId);
+      } else if (next.size < MAX_TRACKS) {
+        next.add(trackId);
+      }
+      return next;
+    });
+  };
+
+  // Build comparison tracks for polar plot
+  const comparisonTracks: ComparisonTrack[] = useMemo(() => {
+    let colorIndex = 0;
+    return analyzedFiles
+      .filter((f) => selectedTrackIds.has(f.id))
+      .map((f) => ({
+        id: f.id,
+        name: f.name,
+        segments: f.result?.segments || [],
+        windDirection: f.result?.wind_estimate?.direction || 0,
+        colorIndex: colorIndex++,
+      }));
+  }, [analyzedFiles, selectedTrackIds]);
+
+  // Calculate aggregate stats for selected tracks
   const aggregateStats = useMemo(() => {
-    if (analyzedFiles.length === 0) return null;
+    if (comparisonTracks.length === 0) return null;
 
-    // Filter out undefined results and get typed array
-    const allResults = analyzedFiles
-      .map(f => f.result)
-      .filter((r): r is NonNullable<typeof r> => r !== undefined);
+    const selectedFiles = analyzedFiles.filter((f) => selectedTrackIds.has(f.id));
+    const allResults = selectedFiles.map((f) => f.result).filter((r) => r !== undefined);
 
-    // VMG statistics
     const vmgValues = allResults
-      .map(r => r.performance_metrics?.vmg_upwind)
+      .map((r) => r.performance_metrics?.vmg_upwind)
       .filter((v): v is number => v !== null && v !== undefined);
 
-    const avgVMG = vmgValues.length > 0
-      ? vmgValues.reduce((a, b) => a + b, 0) / vmgValues.length
-      : null;
+    const avgVMG = vmgValues.length > 0 ? vmgValues.reduce((a, b) => a + b, 0) / vmgValues.length : null;
+    const bestVMG = vmgValues.length > 0 ? Math.max(...vmgValues) : null;
 
-    const bestVMG = vmgValues.length > 0
-      ? Math.max(...vmgValues)
-      : null;
-
-    const worstVMG = vmgValues.length > 0
-      ? Math.min(...vmgValues)
-      : null;
-
-    // Speed statistics
     const speedValues = allResults
-      .map(r => r.performance_metrics?.avg_speed)
+      .map((r) => r.performance_metrics?.avg_speed)
       .filter((v): v is number => v !== null && v !== undefined);
 
-    const avgSpeed = speedValues.length > 0
-      ? speedValues.reduce((a, b) => a + b, 0) / speedValues.length
-      : null;
+    const avgSpeed = speedValues.length > 0 ? speedValues.reduce((a, b) => a + b, 0) / speedValues.length : null;
 
-    // Distance statistics
-    const totalDistance = allResults
-      .reduce((sum, r) => sum + (r.track_summary?.total_distance || 0), 0);
+    return { avgVMG, bestVMG, avgSpeed, trackCount: comparisonTracks.length };
+  }, [analyzedFiles, selectedTrackIds, comparisonTracks.length]);
 
-    // Angle statistics
-    const angleValues = allResults
-      .map(r => r.performance_metrics?.best_upwind_angle)
-      .filter((v): v is number => v !== null && v !== undefined);
-    
-    const bestAngle = angleValues.length > 0
-      ? Math.min(...angleValues)
-      : null;
-
-    return {
-      avgVMG,
-      bestVMG,
-      worstVMG,
-      avgSpeed,
-      totalDistance,
-      bestAngle,
-      trackCount: analyzedFiles.length
-    };
-  }, [analyzedFiles]);
-
-  if (!aggregateStats || analyzedFiles.length < 2) {
+  if (analyzedFiles.length < 2) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
@@ -92,194 +86,178 @@ export function ComparisonView() {
     );
   }
 
-  const getTrendIcon = (value: number | null, reference: number | null, higherIsBetter = true) => {
-    if (!value || !reference) return <Minus className="h-4 w-4 text-gray-400" />;
-    
-    const diff = value - reference;
-    if (Math.abs(diff) < 0.01) return <Minus className="h-4 w-4 text-gray-400" />;
-    
-    const isPositive = higherIsBetter ? diff > 0 : diff < 0;
-    return isPositive 
-      ? <TrendingUp className="h-4 w-4 text-green-600" />
-      : <TrendingDown className="h-4 w-4 text-red-600" />;
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">
-                  {aggregateStats.avgVMG ? formatSpeed(aggregateStats.avgVMG) : 'N/A'}
-                </p>
-                <p className="text-sm text-gray-600">Average VMG</p>
-              </div>
-              <Gauge className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">
-                  {aggregateStats.bestVMG ? formatSpeed(aggregateStats.bestVMG) : 'N/A'}
-                </p>
-                <p className="text-sm text-gray-600">Best VMG</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">
-                  {aggregateStats.bestAngle ? formatAngle(aggregateStats.bestAngle) : 'N/A'}
-                </p>
-                <p className="text-sm text-gray-600">Best Angle</p>
-              </div>
-              <Wind className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">
-                  {formatDistance(aggregateStats.totalDistance * 1000)}
-                </p>
-                <p className="text-sm text-gray-600">Total Distance</p>
-              </div>
-              <Navigation className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Individual Track Comparison Table */}
+    <div className="space-y-4">
+      {/* Track Selection */}
       <Card>
-        <CardHeader>
-          <CardTitle>Track Comparison</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">
+            Select Tracks to Compare ({selectedTrackIds.size}/{MAX_TRACKS})
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Track</th>
-                  <th className="text-center p-2">Date</th>
-                  <th className="text-center p-2">VMG</th>
-                  <th className="text-center p-2">Avg Speed</th>
-                  <th className="text-center p-2">Best Angle</th>
-                  <th className="text-center p-2">Distance</th>
-                  <th className="text-center p-2">Duration</th>
-                  <th className="text-center p-2">Segments</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analyzedFiles.map((file, index) => {
-                  const result = file.result;
-                  if (!result) return null;
-                  const metrics = result.performance_metrics;
-                  const summary = result.track_summary;
-                  const referenceMetrics = analyzedFiles[0]?.result?.performance_metrics;
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 gap-2">
+            {analyzedFiles.map((file, idx) => {
+              const isSelected = selectedTrackIds.has(file.id);
+              const isDisabled = !isSelected && selectedTrackIds.size >= MAX_TRACKS;
+              const colorIndex = comparisonTracks.findIndex((t) => t.id === file.id);
+              const color = colorIndex >= 0 ? TRACK_COLORS[colorIndex] : null;
 
-                  return (
-                    <tr key={file.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">
-                        <div>
-                          <p className="font-medium truncate max-w-[200px]">
-                            {file.name}
-                          </p>
-                          {index === 0 && (
-                            <Badge variant="outline" className="text-xs mt-1">
-                              Reference
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-center p-2 text-sm">
-                        {file.metadata?.time ?
-                          new Date(file.metadata.time).toLocaleDateString() :
-                          '-'
-                        }
-                      </td>
-                      <td className="text-center p-2">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="font-medium">
-                            {metrics?.vmg_upwind ? formatSpeed(metrics.vmg_upwind) : '-'}
-                          </span>
-                          {index > 0 && getTrendIcon(
-                            metrics?.vmg_upwind ?? null,
-                            referenceMetrics?.vmg_upwind ?? null,
-                            true
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-center p-2">
-                        {metrics?.avg_speed ? formatSpeed(metrics.avg_speed) : '-'}
-                      </td>
-                      <td className="text-center p-2">
-                        <div className="flex items-center justify-center gap-2">
-                          <span>
-                            {metrics?.best_upwind_angle ? formatAngle(metrics.best_upwind_angle) : '-'}
-                          </span>
-                          {index > 0 && getTrendIcon(
-                            metrics?.best_upwind_angle ?? null,
-                            referenceMetrics?.best_upwind_angle ?? null,
-                            false // Lower angle is better
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-center p-2">
-                        {summary?.total_distance ?
-                          formatDistance(summary.total_distance * 1000) :
-                          '-'
-                        }
-                      </td>
-                      <td className="text-center p-2">
-                        {summary?.duration_seconds ?
-                          formatDuration(summary.duration_seconds) :
-                          '-'
-                        }
-                      </td>
-                      <td className="text-center p-2">
-                        {result.segments?.length ?? 0}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Comparison insights */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Insights</h4>
-            <ul className="space-y-1 text-sm text-blue-800">
-              {aggregateStats.bestVMG && aggregateStats.worstVMG && (
-                <li>
-                  • VMG range: {formatSpeed(aggregateStats.worstVMG)} - {formatSpeed(aggregateStats.bestVMG)} 
-                  ({((aggregateStats.bestVMG - aggregateStats.worstVMG) / aggregateStats.worstVMG * 100).toFixed(0)}% variation)
-                </li>
-              )}
-              {aggregateStats.avgSpeed && (
-                <li>• Average speed across all sessions: {formatSpeed(aggregateStats.avgSpeed)}</li>
-              )}
-              <li>• Total sailing distance: {formatDistance(aggregateStats.totalDistance * 1000)}</li>
-            </ul>
+              return (
+                <label
+                  key={file.id}
+                  className={cn(
+                    'flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors',
+                    isSelected ? 'bg-slate-100' : 'hover:bg-slate-50',
+                    isDisabled && 'opacity-50 cursor-not-allowed',
+                    hoveredTrackId === file.id && 'ring-2 ring-yellow-400'
+                  )}
+                  onMouseEnter={() => isSelected && setHoveredTrackId(file.id)}
+                  onMouseLeave={() => setHoveredTrackId(null)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => !isDisabled && toggleTrack(file.id)}
+                    disabled={isDisabled}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  {color && (
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: color.fill }}
+                    />
+                  )}
+                  <span className="text-sm truncate">{file.name.replace('.gpx', '')}</span>
+                </label>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
+
+      {/* Polar Plot + Stats side by side on larger screens */}
+      {comparisonTracks.length >= 2 && (
+        <div className="grid lg:grid-cols-2 gap-4">
+          {/* Overlay Polar Plot */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Polar Comparison</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ComparisonPolarPlot
+                tracks={comparisonTracks}
+                hoveredTrackId={hoveredTrackId}
+                onTrackHover={setHoveredTrackId}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Comparison Stats Table */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Performance Comparison</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="p-2 font-medium">Track</th>
+                      <th className="p-2 font-medium text-right">Rep VMG</th>
+                      <th className="p-2 font-medium text-right">Best VMG</th>
+                      <th className="p-2 font-medium text-right">Avg Speed</th>
+                      <th className="p-2 font-medium text-right">Segments</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisonTracks.map((track) => {
+                      const file = analyzedFiles.find((f) => f.id === track.id);
+                      const result = file?.result;
+                      const metrics = result?.performance_metrics;
+                      const color = TRACK_COLORS[track.colorIndex];
+                      const isHovered = hoveredTrackId === track.id;
+
+                      // Calculate VMG for each segment and get top 3
+                      const calcVMG = (s: { avg_speed_knots: number; angle_to_wind: number }) =>
+                        s.avg_speed_knots * Math.cos((s.angle_to_wind * Math.PI) / 180);
+
+                      const upwindSegments = (result?.segments || [])
+                        .filter((s) => s.direction === 'Upwind')
+                        .map((s) => ({ ...s, vmg: calcVMG(s) }))
+                        .sort((a, b) => b.vmg - a.vmg);
+                      const top3 = upwindSegments.slice(0, 3);
+                      const repVMG =
+                        top3.length > 0 ? top3.reduce((sum, s) => sum + s.vmg, 0) / top3.length : null;
+
+                      return (
+                        <tr
+                          key={track.id}
+                          className={cn(
+                            'border-b transition-colors',
+                            isHovered ? 'bg-yellow-50' : 'hover:bg-slate-50'
+                          )}
+                          onMouseEnter={() => setHoveredTrackId(track.id)}
+                          onMouseLeave={() => setHoveredTrackId(null)}
+                        >
+                          <td className="p-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: color.fill }}
+                              />
+                              <span className="truncate max-w-[120px]">
+                                {track.name.replace('.gpx', '')}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-2 text-right font-medium">
+                            {repVMG ? formatSpeed(repVMG) : '-'}
+                          </td>
+                          <td className="p-2 text-right">
+                            {metrics?.vmg_upwind ? formatSpeed(metrics.vmg_upwind) : '-'}
+                          </td>
+                          <td className="p-2 text-right">
+                            {metrics?.avg_speed ? formatSpeed(metrics.avg_speed) : '-'}
+                          </td>
+                          <td className="p-2 text-right">{result?.segments?.length ?? 0}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Summary row */}
+              {aggregateStats && (
+                <div className="mt-4 pt-3 border-t text-xs text-slate-600">
+                  <div className="flex justify-between">
+                    <span>Average VMG across tracks:</span>
+                    <span className="font-medium">
+                      {aggregateStats.avgVMG ? formatSpeed(aggregateStats.avgVMG) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span>Best VMG (any track):</span>
+                    <span className="font-medium">
+                      {aggregateStats.bestVMG ? formatSpeed(aggregateStats.bestVMG) : '-'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Message when less than 2 selected */}
+      {comparisonTracks.length < 2 && (
+        <Card>
+          <CardContent className="p-8 text-center text-slate-500">
+            Select at least 2 tracks above to see comparison
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

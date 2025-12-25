@@ -149,7 +149,8 @@ try {
 | `LinkedPolarPlot` | Interactive polar chart linked to map/list | Active |
 | `SegmentList` | Segment table with include/exclude toggles | Active |
 | `TrackNavigator` | Tabs for switching between analyzed tracks | Active |
-| `ComparisonView` | Side-by-side track comparison | Future phase |
+| `ComparisonView` | Track comparison with overlay polar + stats | Active |
+| `ComparisonPolarPlot` | Multi-track overlay polar chart | Active |
 
 ### Data Flow
 
@@ -247,14 +248,15 @@ function calculateStats(segments: Segment[], excludedIds: Set<number>) {
 5. **Phase 5** [DONE]: Averaged performance metrics (Rep VMG = top 3 segments, distance-weighted)
 6. **Phase 6** [DONE]: Auto-analyze on upload (when historical wind found)
 7. **UI Cleanup** [DONE]: Collapsible parameters, better descriptions, tooltips
-8. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
+8. **Phase 3.4** [DONE]: Track comparison (overlay polar + stats table)
+9. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
 
 ### Cleanup Notes
 
-Old components kept as fallback (delete after ComparisonView update):
-- `SimpleAnalysisResults.tsx` → replaced by `AnalysisView`
-- `SimplePolarPlot.tsx` → replaced by `LinkedPolarPlot`
-- `SimpleLeafletMap.tsx` → replaced by `TrackMap`
+Old components removed (Dec 2024):
+- ~~`SimpleAnalysisResults.tsx`~~ → replaced by `AnalysisView` ✓
+- ~~`SimplePolarPlot.tsx`~~ → replaced by `LinkedPolarPlot` ✓
+- ~~`SimpleLeafletMap.tsx`~~ → replaced by `TrackMap` ✓
 
 ### Key Data Available
 
