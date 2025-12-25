@@ -283,7 +283,7 @@ export function TrackFileCard({
       {/* Completed state */}
       {isCompleted && (
         <div className="mt-3 text-sm text-green-700 font-medium">
-          Analysis complete - see results below
+          ✓ Analysis complete
         </div>
       )}
     </Card>
