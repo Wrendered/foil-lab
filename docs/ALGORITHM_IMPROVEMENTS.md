@@ -131,12 +131,45 @@ angle_to_wind | avg_speed | best_speed | vmg | segment_count
 - Compare polars across sessions/wings
 - Normalize for wind speed if known
 
-**3.4 Track Comparison UI**
-- Easy way to compare stats between different tracks
-- Side-by-side polar plots
-- Overlay mode to see differences
-- Filter/select which tracks to compare
-- Export comparison data
+**3.4 Track Comparison UI** [PLANNED - Dec 2024]
+
+Approach: Overlay polar + stats table (simple, compact, interactive)
+
+**UI Layout:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Track Selection (checkboxes, max 4)                            │
+│  ☑ Session1.gpx (blue)    ☑ Session2.gpx (green)               │
+│  ☐ Session3.gpx (orange)  ☐ Session4.gpx (purple)              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│                    OVERLAY POLAR PLOT                           │
+│                                                                 │
+│         • Blue dots = Session1                                  │
+│         • Green dots = Session2                                 │
+│         • Hover track name → highlight its points               │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  COMPARISON STATS TABLE                                         │
+│  ─────────────────────────────────────────────────────────────  │
+│  Track         │ Rep VMG │ Best VMG │ Avg Speed │ Segments     │
+│  Session1.gpx  │ 10.2 kn │ 11.4 kn  │ 14.8 kn   │ 12           │
+│  Session2.gpx  │  9.8 kn │ 10.9 kn  │ 13.2 kn   │ 15           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+- Select 2-4 tracks from uploaded files
+- Overlay polar dots with distinct colors per track
+- Stats table with key metrics side-by-side
+- Hover interaction: highlight track in polar + table
+- Simple first, fancy later (no small multiples yet)
+
+**Implementation Notes:**
+- Reuse `LinkedPolarPlot` with multi-track data prop
+- Track colors: blue, green, orange, purple (consistent palette)
+- Stats table reuses existing metric calculations
+- Can expand to include wind conditions, date, notes later
 
 ---
 
@@ -156,19 +189,30 @@ angle_to_wind | avg_speed | best_speed | vmg | segment_count
    - Port/starboard separation with distance-weighted circles
    - VMG computed but not displayed
 
-4. **[NEXT] UI Overhaul** - See UI_REDESIGN section below
+4. **[DONE] UI Overhaul** - See UI_REDESIGN section below ✓
+   - AnalysisView with map-polar-list linking
+   - Segment toggle + live stats recalculation
+   - Wind fine-tuning with client-side recalc
+   - Auto-analyze on upload
+   - Collapsible parameters with tooltips
 
-5. **Phase 3.1 Enhancements** (after UI overhaul)
+5. **[NEXT] Phase 3.4** - Track comparison
+   - Overlay polar plot (2-4 tracks, distinct colors)
+   - Comparison stats table
+   - Hover interaction across polar + table
+   - See detailed plan above
+
+6. **Phase 3.1 Enhancements** (after comparison)
    - Add VMG visualization to polar
    - Show best VMG angle highlight
    - Add downwind polar data
 
-6. **Phase 3.4** - Track comparison
-   - Compare stats between different sessions
-   - Compare polars across sessions/wings
-   - Side-by-side or overlay views
+7. **Phase 4** - Time/spatial filters for longer tracks
+   - Time range slider (filter points before segment detection)
+   - Spatial rectangle selection on map
+   - Requires re-analyze (backend call)
 
-7. **Phase 2.1** - Multi-start validation (if needed)
+8. **Phase 2.1** - Multi-start validation (if needed)
    - Only if users report convergence issues with good starting estimates
 
 ---
