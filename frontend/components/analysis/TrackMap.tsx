@@ -64,6 +64,88 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
 
     const trackCoords: [number, number][] = gpsData.map((p) => [p.latitude, p.longitude]);
 
+    // Calculate track bounds for wind overlay
+    const lats = gpsData.map((p) => p.latitude);
+    const lngs = gpsData.map((p) => p.longitude);
+    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const latSpan = Math.max(...lats) - Math.min(...lats);
+    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+    const maxSpan = Math.max(latSpan, lngSpan) * 1.5; // Extend beyond track
+
+    // Draw wind direction grid lines
+    // Wind direction is where wind comes FROM, so line points in that direction
+    const windRad = (windDirection * Math.PI) / 180;
+    const perpRad = windRad + Math.PI / 2; // Perpendicular for offset lines
+
+    // Helper to calculate point offset from center
+    const getOffsetPoint = (dist: number, angle: number): [number, number] => {
+      // Approximate: 1 degree lat ≈ 111km, 1 degree lng ≈ 111km * cos(lat)
+      const latOffset = dist * Math.cos(angle);
+      const lngOffset = dist * Math.sin(angle) / Math.cos((centerLat * Math.PI) / 180);
+      return [centerLat + latOffset, centerLng + lngOffset];
+    };
+
+    // Draw parallel wind lines (center + 2 on each side)
+    const lineOffsets = [0, -0.3, 0.3, -0.6, 0.6]; // Fraction of maxSpan
+    lineOffsets.forEach((offset, i) => {
+      const offsetDist = offset * maxSpan;
+      const baseLat = centerLat + offsetDist * Math.cos(perpRad);
+      const baseLng = centerLng + offsetDist * Math.sin(perpRad) / Math.cos((centerLat * Math.PI) / 180);
+
+      // Line extends in wind direction from this offset point
+      const lineStart: [number, number] = [
+        baseLat - maxSpan * Math.cos(windRad),
+        baseLng - maxSpan * Math.sin(windRad) / Math.cos((centerLat * Math.PI) / 180),
+      ];
+      const lineEnd: [number, number] = [
+        baseLat + maxSpan * Math.cos(windRad),
+        baseLng + maxSpan * Math.sin(windRad) / Math.cos((centerLat * Math.PI) / 180),
+      ];
+
+      const isCenter = i === 0;
+      const windLine = L.polyline([lineStart, lineEnd], {
+        color: isCenter ? '#7C3AED' : '#A78BFA', // Purple, lighter for non-center
+        weight: isCenter ? 2 : 1,
+        opacity: isCenter ? 0.7 : 0.4,
+        dashArray: isCenter ? '8, 8' : '4, 8',
+      });
+      windLine.addTo(map);
+      layersRef.current.push(windLine);
+    });
+
+    // Add wind arrow at center pointing downwind (where wind BLOWS TO)
+    const arrowLength = maxSpan * 0.15;
+    const arrowStart = getOffsetPoint(arrowLength * 0.5, windRad); // Start at upwind side (where wind comes from)
+    const arrowEnd = getOffsetPoint(arrowLength * 0.5, windRad + Math.PI); // End at downwind side (where wind goes)
+    const arrowLine = L.polyline([arrowStart, arrowEnd], {
+      color: '#7C3AED',
+      weight: 3,
+      opacity: 0.8,
+    });
+    arrowLine.addTo(map);
+    layersRef.current.push(arrowLine);
+
+    // Arrowhead (pointing in flow direction, windRad + PI)
+    const headLength = arrowLength * 0.3;
+    const headAngle = 0.5; // radians, ~30 degrees
+    const flowRad = windRad + Math.PI; // Direction wind flows TO
+    const headLeft: [number, number] = [
+      arrowEnd[0] - headLength * Math.cos(flowRad - headAngle),
+      arrowEnd[1] - headLength * Math.sin(flowRad - headAngle) / Math.cos((centerLat * Math.PI) / 180),
+    ];
+    const headRight: [number, number] = [
+      arrowEnd[0] - headLength * Math.cos(flowRad + headAngle),
+      arrowEnd[1] - headLength * Math.sin(flowRad + headAngle) / Math.cos((centerLat * Math.PI) / 180),
+    ];
+    const arrowHead = L.polyline([headLeft, arrowEnd, headRight], {
+      color: '#7C3AED',
+      weight: 3,
+      opacity: 0.8,
+    });
+    arrowHead.addTo(map);
+    layersRef.current.push(arrowHead);
+
     // Draw full track in light gray
     const trackLayer = L.polyline(trackCoords, {
       color: '#D1D5DB',
@@ -132,7 +214,7 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
       map.fitBounds(bounds, { padding: [30, 30] });
       boundsSetRef.current = true;
     }
-  }, [gpsData, segments, hoveredSegmentId, excludedSegmentIds, getSegmentColor, setHoveredSegment, toggleSegmentExclusion]);
+  }, [gpsData, segments, hoveredSegmentId, excludedSegmentIds, getSegmentColor, setHoveredSegment, toggleSegmentExclusion, windDirection]);
 
   // Initialize map
   useEffect(() => {
@@ -199,16 +281,43 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
   }, [updateMapContent]);
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '300px',
-        borderRadius: '8px',
-        overflow: 'hidden',
-      }}
-    />
+    <div className={`relative ${className}`} style={{ minHeight: '300px' }}>
+      {/* Map container */}
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          minHeight: '300px',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}
+      />
+
+      {/* Wind direction overlay - arrow shows where wind BLOWS TO */}
+      <div
+        className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg shadow-md px-3 py-2 flex items-center gap-2 z-[1000]"
+        title={`Wind from ${Math.round(windDirection)}°`}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          className="text-purple-600"
+          style={{ transform: `rotate(${windDirection + 90}deg)` }}
+        >
+          {/* Arrow pointing right, rotated to show wind flow direction (where it goes TO) */}
+          <path
+            d="M2 12 L22 12 M22 12 L16 6 M22 12 L16 18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className="text-sm font-medium text-slate-700">{Math.round(windDirection)}°</span>
+      </div>
+    </div>
   );
 }

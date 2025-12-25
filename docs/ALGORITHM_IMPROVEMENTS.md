@@ -255,32 +255,65 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 
 ### Implementation Phases
 
-#### Phase 1: Layout + Map-Polar Linking [CURRENT]
-- [ ] New `AnalysisView.tsx` component with side-by-side layout
-- [ ] Enhanced map showing track with colored segment overlays
-- [ ] Polar and map share hover/selection state via React context or Zustand
-- [ ] Segment list with basic info (tack, angle, speed, distance)
-- [ ] Hover coordination between all three views
+#### Phase 1: Layout + Map-Polar Linking [DONE - Dec 2024]
+- [x] New `AnalysisView.tsx` component with side-by-side layout
+- [x] Enhanced `TrackMap.tsx` showing track with colored segment overlays
+- [x] `LinkedPolarPlot.tsx` with hover/click interactivity
+- [x] `SegmentList.tsx` with basic info (tack, angle, speed, distance)
+- [x] `viewStore.ts` for shared hover/exclusion state
+- [x] Hover coordination between all three views
 
-#### Phase 2: Segment Toggle + Live Stats
-- [ ] Checkbox/click to include/exclude individual segments
-- [ ] Client-side stats recalculation when segments toggled
-- [ ] Visual distinction: excluded = gray/dashed/faded
-- [ ] "X of Y segments active" indicator
-- [ ] VMG recalculates based on active segments only
+#### Phase 2: Segment Toggle + Live Stats [DONE - Dec 2024]
+- [x] Checkbox/click to include/exclude individual segments
+- [x] Client-side stats recalculation when segments toggled
+- [x] Visual distinction: excluded = gray/dashed/faded
+- [x] "X of Y segments active" indicator
+- [x] VMG recalculates based on active segments only
 
-#### Phase 3: Wind Fine-tuning
-- [ ] Draggable wind reference line on polar plot
-- [ ] Or simple number input with +/- buttons
-- [ ] Client-side `angle_to_wind` recalculation (no backend call)
-- [ ] Show: Historical (dotted) / Calculated (dashed) / Current (solid)
-- [ ] Polar dots reposition as wind angle changes
+#### Phase 3: Wind Fine-tuning [DONE - Dec 2024]
+- [x] Wind adjustment controls in header (+/- 2° buttons)
+- [x] Client-side `angle_to_wind` recalculation (no backend call)
+- [x] Polar dots reposition as wind angle changes
+- [x] Segments reclassified as Upwind/Downwind based on new angles
+- [x] Stats (VMG, angles) recalculate live
+- [x] Reset button to restore calculated wind
+- [x] Blue highlight when wind is adjusted
+
+#### Phase 3.5: Wind Direction Overlay on Map [DONE - Dec 2024]
+- [x] Add wind arrow/indicator overlay on the map
+- [x] Visual reference to validate if wind direction looks correct
+- [x] Arrow should update when wind is adjusted via +/- controls
+- [x] Helps user understand segment angles relative to wind
 
 #### Phase 4: Filters for Longer Tracks
 - [ ] Time range slider (filter points before segment detection)
 - [ ] Spatial rectangle selection on map
 - [ ] These require re-analyze (backend call)
 - [ ] Detection settings panel (gear icon → slide-out)
+
+#### Phase 5: Averaged Performance Metrics
+- [ ] "Representative VMG" - average of top N segments (e.g., best 3-5)
+- [ ] "Representative angle" - average angle of top VMG segments
+- [ ] Avoids single-segment outliers skewing perception
+- [ ] Shows more realistic "what can I consistently achieve" picture
+- [ ] Consider weighting by distance (longer segments = more reliable)
+
+#### Phase 6: Auto-Analyze on Upload
+- [ ] Automatically trigger analysis when historical wind is found
+- [ ] Skip the "Analyze Track" button click for smoother flow
+- [ ] Only prompt for manual wind input if historical lookup fails
+- [ ] After analysis, allow wind adjustment via Phase 3 controls
+- [ ] Reduces friction: drop file → see results immediately
+
+### Cleanup Notes
+
+**Old components to remove** (after ComparisonView is updated):
+- `SimpleAnalysisResults.tsx` - replaced by `AnalysisView`
+- `SimplePolarPlot.tsx` - replaced by `LinkedPolarPlot`
+- `SimpleLeafletMap.tsx` - replaced by `TrackMap`
+
+These are currently kept as fallback but can be deleted once ComparisonView
+uses the new interactive components or is redesigned.
 
 ### Technical Considerations
 
