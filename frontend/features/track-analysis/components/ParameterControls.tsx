@@ -37,8 +37,8 @@ const PARAMETER_INFO = {
   angleTolerance: {
     label: 'Angle Tolerance',
     unit: '°',
-    description: 'How much heading variation allowed within one tack/run',
-    example: 'At 25°, a segment stays "one tack" if heading stays within ±25°. Lower = stricter, may split wobbly runs',
+    description: 'Max heading change before starting a new segment',
+    example: 'At 25°, if your heading drifts >25° from the start of a tack, a new segment begins. Lower = stricter',
   },
   minSpeed: {
     label: 'Minimum Speed',
