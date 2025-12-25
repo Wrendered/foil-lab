@@ -199,16 +199,43 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
   }, [updateMapContent]);
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '300px',
-        borderRadius: '8px',
-        overflow: 'hidden',
-      }}
-    />
+    <div className={`relative ${className}`} style={{ minHeight: '300px' }}>
+      {/* Map container */}
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          minHeight: '300px',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}
+      />
+
+      {/* Wind direction overlay */}
+      <div
+        className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg shadow-md px-3 py-2 flex items-center gap-2 z-[1000]"
+        title={`Wind from ${windDirection}°`}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          className="text-blue-600"
+          style={{ transform: `rotate(${windDirection}deg)` }}
+        >
+          {/* Arrow pointing down (wind coming FROM this direction) */}
+          <path
+            d="M12 2 L12 22 M12 22 L6 16 M12 22 L18 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className="text-sm font-medium text-slate-700">{Math.round(windDirection)}°</span>
+      </div>
+    </div>
   );
 }
