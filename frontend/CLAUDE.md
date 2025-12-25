@@ -140,13 +140,15 @@ try {
 
 | Component | Purpose | Status |
 |-----------|---------|--------|
-| `TrackUploader` | Dropzone + renders TrackFileCards for each file | Keep for upload |
-| `TrackFileCard` | Shows file metadata, wind compass, auto-lookups wind | Simplify |
-| `WindCompass` | Interactive SVG compass for wind direction input | Keep |
-| `SimplePolarPlot` | Polar chart showing speed vs angle for upwind segments | Enhance |
-| `SimpleLeafletMap` | Track visualization on map | Enhance significantly |
-| `ParameterControls` | Sliders for analysis parameters (global, not per-file) | Move to settings panel |
-| `TrackNavigator` | Tabs for switching between analyzed tracks | Replace |
+| `TrackUploader` | Dropzone + renders TrackFileCards for each file | Active |
+| `TrackFileCard` | Shows file metadata, wind compass, auto-lookups wind, auto-analyze | Active |
+| `WindCompass` | Interactive SVG compass for wind direction input | Active |
+| `ParameterControls` | Collapsible detection settings with tooltips | Active |
+| `AnalysisView` | Main results view with map-polar-list linking | Active |
+| `TrackMap` | Track visualization with segment overlays, wind arrow | Active |
+| `LinkedPolarPlot` | Interactive polar chart linked to map/list | Active |
+| `SegmentList` | Segment table with include/exclude toggles | Active |
+| `TrackNavigator` | Tabs for switching between analyzed tracks | Active |
 | `ComparisonView` | Side-by-side track comparison | Future phase |
 
 ### Data Flow
@@ -154,40 +156,47 @@ try {
 1. User drops GPX file → `TrackUploader.onDrop` → `uploadStore.addFile`
 2. GPX parsed client-side → `uploadStore.setFileGPSData` (metadata, points)
 3. Auto wind lookup → `useLookupWind` → `uploadStore.setFileWindData`
-4. User clicks Analyze → `handleAnalyzeTrack` → POST `/api/analyze-track`
+4. **Auto-analyze triggers** (if historical wind found) → POST `/api/analyze-track`
 5. Results stored in both `uploadStore` (per-file) and `analysisStore` (current view)
+6. User can adjust wind ±2° → client-side recalculation (no backend call)
+7. User can toggle segments → stats recalculate live
 
 ---
 
-## UI Overhaul (In Progress - Dec 2024)
+## UI Architecture (Dec 2024)
 
-See `docs/ALGORITHM_IMPROVEMENTS.md` for full redesign plan.
+See `docs/ALGORITHM_IMPROVEMENTS.md` for full redesign history.
 
 ### Core Insight
 
 The map is **validation** - users need to see WHERE polar data points come from to trust them.
 
-### New Component Architecture
+### Component Architecture
 
 ```
-AnalysisView.tsx (new main component)
-├── Header: file selector, settings gear
-├── MainContent (side-by-side)
-│   ├── TrackMap.tsx (enhanced map)
-│   │   └── Shows track + colored segment overlays
-│   │   └── Hover/click → highlights on polar + list
-│   │   └── Wind arrow overlay
-│   └── RightPanel
-│       ├── PolarPlot.tsx (enhanced)
-│       │   └── Linked with map via shared state
-│       │   └── Click dot → toggle segment inclusion
-│       │   └── Wind direction indicator (draggable later)
-│       └── SegmentList.tsx (new)
-│           └── Checkboxes for include/exclude
-│           └── Tack, angle, speed, distance columns
-│           └── Hover → highlights map + polar
-├── StatsBar: VMG, avg speed, active segment count
-└── SettingsPanel (slide-out): detection parameters
+analyze/page.tsx
+├── Header: title, connection status (only when disconnected)
+├── Left sidebar
+│   ├── TrackUploader → TrackFileCard (per file)
+│   │   └── Auto wind lookup + auto-analyze
+│   │   └── WindCompass for manual adjustment
+│   └── ParameterControls (collapsible)
+│       └── Detection settings with help tooltips
+├── Main content
+│   └── AnalysisView.tsx
+│       ├── Header: wind adjustment ±2°, settings gear
+│       ├── TrackMap.tsx (left)
+│       │   └── Track + colored segment overlays
+│       │   └── Wind arrow overlay
+│       │   └── Hover/click → highlights polar + list
+│       ├── RightPanel
+│       │   ├── LinkedPolarPlot.tsx
+│       │   │   └── Interactive dots linked to map/list
+│       │   └── SegmentList.tsx
+│       │       └── Include/exclude toggles
+│       │       └── Hover → highlights map + polar
+│       └── StatsBar: Rep VMG, Best VMG, Avg Speed, Segments, Distance
+└── Footer: feedback link
 ```
 
 ### Shared View State
@@ -237,7 +246,8 @@ function calculateStats(segments: Segment[], excludedIds: Set<number>) {
 4. **Phase 3.5** [DONE]: Wind direction overlay on map (arrow indicator)
 5. **Phase 5** [DONE]: Averaged performance metrics (Rep VMG = top 3 segments, distance-weighted)
 6. **Phase 6** [DONE]: Auto-analyze on upload (when historical wind found)
-7. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
+7. **UI Cleanup** [DONE]: Collapsible parameters, better descriptions, tooltips
+8. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
 
 ### Cleanup Notes
 

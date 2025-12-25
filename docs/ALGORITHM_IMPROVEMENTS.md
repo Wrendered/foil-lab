@@ -289,7 +289,14 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [ ] Time range slider (filter points before segment detection)
 - [ ] Spatial rectangle selection on map
 - [ ] These require re-analyze (backend call)
-- [ ] Detection settings panel (gear icon → slide-out)
+
+#### UI Cleanup [DONE - Dec 2024]
+- [x] Detection settings collapsible (hidden by default)
+- [x] Better parameter descriptions with practical examples
+- [x] Help tooltips explaining each setting
+- [x] Summary line when collapsed ("Using defaults" or "Custom: 25°/8kn/75m")
+- [x] Connection status hidden when connected
+- [x] Compact feedback footer
 
 #### Phase 5: Averaged Performance Metrics [DONE - Dec 2024]
 - [x] "Representative VMG" - average of top 3 segments by VMG
