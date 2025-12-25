@@ -233,25 +233,25 @@ export function ComparisonView() {
                   .filter((s) => s.direction === 'Upwind')
                   .map((s) => ({ ...s, vmg: calcVMG(s) }));
 
-                // Rep VMG: avg of top 3 by VMG
+                // Sort by VMG to find best and rep
                 const byVMG = [...upwindSegments].sort((a, b) => b.vmg - a.vmg);
-                const top3VMG = byVMG.slice(0, 3);
-                const repVMG = top3VMG.length > 0
-                  ? top3VMG.reduce((sum, s) => sum + s.vmg, 0) / top3VMG.length
-                  : null;
 
-                // Rep Angle: avg of top 3 tightest angles
-                const byAngle = [...upwindSegments].sort((a, b) => a.angle_to_wind - b.angle_to_wind);
-                const top3Angle = byAngle.slice(0, 3);
-                const repAngle = top3Angle.length > 0
-                  ? top3Angle.reduce((sum, s) => sum + s.angle_to_wind, 0) / top3Angle.length
-                  : null;
+                // Best: single best segment by VMG
+                const bestSeg = byVMG[0] || null;
+                const bestAngle = bestSeg?.angle_to_wind ?? null;
+                const bestSpeed = bestSeg?.avg_speed_knots ?? null;
+                const bestVMG = bestSeg?.vmg ?? null;
 
-                // Rep Speed: avg of top 3 fastest segments
-                const bySpeed = [...upwindSegments].sort((a, b) => b.avg_speed_knots - a.avg_speed_knots);
-                const top3Speed = bySpeed.slice(0, 3);
-                const repSpeed = top3Speed.length > 0
-                  ? top3Speed.reduce((sum, s) => sum + s.avg_speed_knots, 0) / top3Speed.length
+                // Rep: avg of top 3 by VMG
+                const top3 = byVMG.slice(0, 3);
+                const repAngle = top3.length > 0
+                  ? top3.reduce((sum, s) => sum + s.angle_to_wind, 0) / top3.length
+                  : null;
+                const repSpeed = top3.length > 0
+                  ? top3.reduce((sum, s) => sum + s.avg_speed_knots, 0) / top3.length
+                  : null;
+                const repVMG = top3.length > 0
+                  ? top3.reduce((sum, s) => sum + s.vmg, 0) / top3.length
                   : null;
 
                 // Wind speed from historical lookup
@@ -278,23 +278,33 @@ export function ComparisonView() {
 
                     {/* Line 2: Stats */}
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                      <span title="Rep VMG (avg top 3)">
-                        <span className="text-slate-400">VMG:</span>{' '}
+                      <span title="Best segment (highest VMG): angle @ speed">
+                        <span className="text-slate-400">Best:</span>{' '}
+                        <span className="font-medium text-slate-800">
+                          {bestAngle !== null ? `${bestAngle.toFixed(0)}°` : '-'}
+                          {bestSpeed !== null ? ` @ ${formatSpeed(bestSpeed)}` : ''}
+                        </span>
+                      </span>
+                      <span title="Representative (avg top 3 VMG): angle @ speed">
+                        <span className="text-slate-400">Rep:</span>{' '}
+                        <span className="font-medium text-slate-800">
+                          {repAngle !== null ? `${repAngle.toFixed(0)}°` : '-'}
+                          {repSpeed !== null ? ` @ ${formatSpeed(repSpeed)}` : ''}
+                        </span>
+                      </span>
+                      <span title="Best VMG (single best segment)">
+                        <span className="text-slate-400">Best VMG:</span>{' '}
+                        <span className="font-medium text-green-700">{bestVMG ? formatSpeed(bestVMG) : '-'}</span>
+                      </span>
+                      <span title="Representative VMG (avg top 3)">
+                        <span className="text-slate-400">Rep VMG:</span>{' '}
                         <span className="font-medium text-slate-800">{repVMG ? formatSpeed(repVMG) : '-'}</span>
-                      </span>
-                      <span title="Rep Angle (avg top 3 tightest)">
-                        <span className="text-slate-400">Angle:</span>{' '}
-                        <span className="font-medium text-slate-800">{repAngle ? `${repAngle.toFixed(0)}°` : '-'}</span>
-                      </span>
-                      <span title="Rep Speed (avg top 3 fastest)">
-                        <span className="text-slate-400">Speed:</span>{' '}
-                        <span className="font-medium text-slate-800">{repSpeed ? formatSpeed(repSpeed) : '-'}</span>
                       </span>
                       <span title="Historical wind speed">
                         <span className="text-slate-400">Wind:</span>{' '}
                         <span className="text-slate-600">{windSpeed ? `${windSpeed.toFixed(0)} kts` : '-'}</span>
                       </span>
-                      <span title="Number of segments">
+                      <span title="Number of upwind segments">
                         <span className="text-slate-400">Seg:</span>{' '}
                         <span className="text-slate-600">{segmentCount}</span>
                       </span>
