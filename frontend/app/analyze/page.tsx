@@ -14,7 +14,7 @@ import { ClientOnly } from '@/components/ClientOnly';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useConfig, useTrackAnalysis, useConnectionStatus } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
-import { Loader2, Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { Loader2, WifiOff, AlertCircle } from 'lucide-react';
 import { isNetworkError, isServerError, isAPIError } from '@/lib/api-client';
 import { DEFAULT_PARAMETERS } from '@/lib/defaults';
 
@@ -206,54 +206,42 @@ export default function AnalyzePage() {
   return (
     <ErrorBoundary>
       <div className="container mx-auto max-w-6xl px-4 py-8">
-        {/* Header with Status */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Track Analysis</h1>
-              <p className="text-gray-600">
-                Upload your GPX files to analyze sailing performance
+              <h1 className="text-2xl font-bold">Track Analysis</h1>
+              <p className="text-gray-600 text-sm">
+                Upload GPX files to analyze your sailing performance
               </p>
             </div>
-            
-            {/* Connection Status */}
-            <Card className="p-3">
-              <div className="flex items-center gap-2 text-sm">
-                {connectionStatus.isConnected ? (
-                  <>
-                    <Wifi className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600">Connected</span>
-                  </>
-                ) : connectionStatus.isChecking ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                    <span className="text-gray-600">Checking...</span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="h-4 w-4 text-red-600" />
-                    <span className="text-red-600">Disconnected</span>
-                  </>
-                )}
-              </div>
-            </Card>
+
+            {/* Connection Status - only show when NOT connected */}
+            {!connectionStatus.isConnected && (
+              <Card className="p-2 px-3">
+                <div className="flex items-center gap-2 text-sm">
+                  {connectionStatus.isChecking ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                      <span className="text-gray-600">Connecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="h-4 w-4 text-red-600" />
+                      <span className="text-red-600">Server unavailable</span>
+                    </>
+                  )}
+                </div>
+              </Card>
+            )}
           </div>
 
-          {/* Configuration Status */}
+          {/* Configuration Status - only show when loading */}
           {configLoading && (
-            <Card className="mb-4 p-4">
-              <div className="flex items-center gap-2">
+            <Card className="mb-4 p-3">
+              <div className="flex items-center gap-2 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                 <span>Loading configuration...</span>
-              </div>
-            </Card>
-          )}
-
-          {configError && (
-            <Card className="mb-4 p-4 border-yellow-200 bg-yellow-50">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <span className="text-yellow-800">Using default configuration</span>
               </div>
             </Card>
           )}
@@ -356,39 +344,20 @@ export default function AnalyzePage() {
           </div>
         </div>
 
-        {/* Feedback and Bug Report Section */}
-        <Card className="mt-12 border-amber-200 bg-amber-50">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">🐛</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-amber-900 mb-2">
-                  Found a Bug or Have Feedback?
-                </h3>
-                <p className="text-amber-800 mb-4 leading-relaxed">
-                  This is a prototype built in spare time - you'll probably find bugs, quirks, or things that don't work as expected. 
-                  That's totally normal! Your feedback helps make this tool better for everyone.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <a 
-                    href="https://www.instagram.com/heart_wrench/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-700 transition-colors"
-                  >
-                    <span>📱</span>
-                    Report Bug on Instagram
-                  </a>
-                  <span className="text-amber-700 text-sm flex items-center">
-                    Screenshots and details are super helpful!
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Feedback footer - compact */}
+        <div className="mt-8 pt-6 border-t text-center text-sm text-gray-500">
+          <p>
+            Found a bug or have feedback?{' '}
+            <a
+              href="https://www.instagram.com/heart_wrench/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              Message @heart_wrench on Instagram
+            </a>
+          </p>
+        </div>
       </div>
     </ErrorBoundary>
   );
