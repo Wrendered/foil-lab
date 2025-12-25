@@ -279,11 +279,11 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [x] Reset button to restore calculated wind
 - [x] Blue highlight when wind is adjusted
 
-#### Phase 3.5: Wind Direction Overlay on Map
-- [ ] Add wind arrow/indicator overlay on the map
-- [ ] Visual reference to validate if wind direction looks correct
-- [ ] Arrow should update when wind is adjusted via +/- controls
-- [ ] Helps user understand segment angles relative to wind
+#### Phase 3.5: Wind Direction Overlay on Map [DONE - Dec 2024]
+- [x] Add wind arrow/indicator overlay on the map
+- [x] Visual reference to validate if wind direction looks correct
+- [x] Arrow should update when wind is adjusted via +/- controls
+- [x] Helps user understand segment angles relative to wind
 
 #### Phase 4: Filters for Longer Tracks
 - [ ] Time range slider (filter points before segment detection)
