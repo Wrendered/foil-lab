@@ -64,6 +64,87 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
 
     const trackCoords: [number, number][] = gpsData.map((p) => [p.latitude, p.longitude]);
 
+    // Calculate track bounds for wind overlay
+    const lats = gpsData.map((p) => p.latitude);
+    const lngs = gpsData.map((p) => p.longitude);
+    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const latSpan = Math.max(...lats) - Math.min(...lats);
+    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+    const maxSpan = Math.max(latSpan, lngSpan) * 1.5; // Extend beyond track
+
+    // Draw wind direction grid lines
+    // Wind direction is where wind comes FROM, so line points in that direction
+    const windRad = (windDirection * Math.PI) / 180;
+    const perpRad = windRad + Math.PI / 2; // Perpendicular for offset lines
+
+    // Helper to calculate point offset from center
+    const getOffsetPoint = (dist: number, angle: number): [number, number] => {
+      // Approximate: 1 degree lat ≈ 111km, 1 degree lng ≈ 111km * cos(lat)
+      const latOffset = dist * Math.cos(angle);
+      const lngOffset = dist * Math.sin(angle) / Math.cos((centerLat * Math.PI) / 180);
+      return [centerLat + latOffset, centerLng + lngOffset];
+    };
+
+    // Draw parallel wind lines (center + 2 on each side)
+    const lineOffsets = [0, -0.3, 0.3, -0.6, 0.6]; // Fraction of maxSpan
+    lineOffsets.forEach((offset, i) => {
+      const offsetDist = offset * maxSpan;
+      const baseLat = centerLat + offsetDist * Math.cos(perpRad);
+      const baseLng = centerLng + offsetDist * Math.sin(perpRad) / Math.cos((centerLat * Math.PI) / 180);
+
+      // Line extends in wind direction from this offset point
+      const lineStart: [number, number] = [
+        baseLat - maxSpan * Math.cos(windRad),
+        baseLng - maxSpan * Math.sin(windRad) / Math.cos((centerLat * Math.PI) / 180),
+      ];
+      const lineEnd: [number, number] = [
+        baseLat + maxSpan * Math.cos(windRad),
+        baseLng + maxSpan * Math.sin(windRad) / Math.cos((centerLat * Math.PI) / 180),
+      ];
+
+      const isCenter = i === 0;
+      const windLine = L.polyline([lineStart, lineEnd], {
+        color: isCenter ? '#7C3AED' : '#A78BFA', // Purple, lighter for non-center
+        weight: isCenter ? 2 : 1,
+        opacity: isCenter ? 0.7 : 0.4,
+        dashArray: isCenter ? '8, 8' : '4, 8',
+      });
+      windLine.addTo(map);
+      layersRef.current.push(windLine);
+    });
+
+    // Add wind arrow at center pointing downwind (where wind goes TO)
+    const arrowLength = maxSpan * 0.15;
+    const arrowStart = getOffsetPoint(arrowLength * 0.5, windRad + Math.PI); // Upwind of center
+    const arrowEnd = getOffsetPoint(arrowLength * 0.5, windRad); // Downwind of center
+    const arrowLine = L.polyline([arrowStart, arrowEnd], {
+      color: '#7C3AED',
+      weight: 3,
+      opacity: 0.8,
+    });
+    arrowLine.addTo(map);
+    layersRef.current.push(arrowLine);
+
+    // Arrowhead
+    const headLength = arrowLength * 0.3;
+    const headAngle = 0.5; // radians, ~30 degrees
+    const headLeft: [number, number] = [
+      arrowEnd[0] - headLength * Math.cos(windRad - headAngle),
+      arrowEnd[1] - headLength * Math.sin(windRad - headAngle) / Math.cos((centerLat * Math.PI) / 180),
+    ];
+    const headRight: [number, number] = [
+      arrowEnd[0] - headLength * Math.cos(windRad + headAngle),
+      arrowEnd[1] - headLength * Math.sin(windRad + headAngle) / Math.cos((centerLat * Math.PI) / 180),
+    ];
+    const arrowHead = L.polyline([headLeft, arrowEnd, headRight], {
+      color: '#7C3AED',
+      weight: 3,
+      opacity: 0.8,
+    });
+    arrowHead.addTo(map);
+    layersRef.current.push(arrowHead);
+
     // Draw full track in light gray
     const trackLayer = L.polyline(trackCoords, {
       color: '#D1D5DB',
@@ -132,7 +213,7 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
       map.fitBounds(bounds, { padding: [30, 30] });
       boundsSetRef.current = true;
     }
-  }, [gpsData, segments, hoveredSegmentId, excludedSegmentIds, getSegmentColor, setHoveredSegment, toggleSegmentExclusion]);
+  }, [gpsData, segments, hoveredSegmentId, excludedSegmentIds, getSegmentColor, setHoveredSegment, toggleSegmentExclusion, windDirection]);
 
   // Initialize map
   useEffect(() => {
