@@ -298,12 +298,13 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [x] Shows alongside "Best VMG" in stats bar for comparison
 - [x] Tooltips explaining each metric
 
-#### Phase 6: Auto-Analyze on Upload
-- [ ] Automatically trigger analysis when historical wind is found
-- [ ] Skip the "Analyze Track" button click for smoother flow
-- [ ] Only prompt for manual wind input if historical lookup fails
-- [ ] After analysis, allow wind adjustment via Phase 3 controls
-- [ ] Reduces friction: drop file → see results immediately
+#### Phase 6: Auto-Analyze on Upload [DONE - Dec 2024]
+- [x] Automatically trigger analysis when historical wind is found
+- [x] Skip the "Analyze Track" button click for smoother flow
+- [x] Only show manual button if historical lookup fails
+- [x] After analysis, allow wind adjustment via Phase 3 controls
+- [x] Reduces friction: drop file → see results immediately
+- [x] Can be disabled via `autoAnalyze={false}` prop
 
 ### Cleanup Notes
 
