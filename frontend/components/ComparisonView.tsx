@@ -73,6 +73,68 @@ function EditableTrackName({
   );
 }
 
+function EditableWindSpeed({
+  fileId,
+  windSpeed,
+  windDirection,
+}: {
+  fileId: string;
+  windSpeed?: number;
+  windDirection?: number;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(windSpeed?.toFixed(0) || '');
+  const setFileWindData = useUploadStore((state) => state.setFileWindData);
+
+  const handleSave = () => {
+    const parsed = parseFloat(editValue);
+    if (!isNaN(parsed) && parsed >= 0) {
+      setFileWindData(fileId, windDirection || 0, parsed);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') {
+      setEditValue(windSpeed?.toFixed(0) || '');
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span className="text-slate-400">Wind:</span>
+        <input
+          type="number"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="w-12 px-1 py-0.5 text-sm border rounded"
+          min="0"
+          step="1"
+        />
+        <span className="text-slate-400">kts</span>
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="group cursor-pointer hover:bg-slate-200 rounded px-1 -mx-1"
+      onClick={() => setIsEditing(true)}
+      title="Click to edit wind speed"
+    >
+      <span className="text-slate-400">Wind:</span>{' '}
+      <span className="text-slate-600">{windSpeed ? `${windSpeed.toFixed(0)} kts` : '-'}</span>
+      <Pencil className="inline h-3 w-3 ml-1 text-slate-400 opacity-0 group-hover:opacity-100" />
+    </span>
+  );
+}
+
 export function ComparisonView() {
   const { files } = useUploadStore();
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
@@ -300,10 +362,11 @@ export function ComparisonView() {
                         <span className="text-slate-400">Rep VMG:</span>{' '}
                         <span className="font-medium text-slate-800">{repVMG ? formatSpeed(repVMG) : '-'}</span>
                       </span>
-                      <span title="Historical wind speed">
-                        <span className="text-slate-400">Wind:</span>{' '}
-                        <span className="text-slate-600">{windSpeed ? `${windSpeed.toFixed(0)} kts` : '-'}</span>
-                      </span>
+                      <EditableWindSpeed
+                        fileId={file?.id || ''}
+                        windSpeed={windSpeed}
+                        windDirection={file?.windDirection}
+                      />
                       <span title="Number of upwind segments">
                         <span className="text-slate-400">Seg:</span>{' '}
                         <span className="text-slate-600">{segmentCount}</span>
