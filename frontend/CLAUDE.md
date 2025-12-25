@@ -235,8 +235,8 @@ function calculateStats(segments: Segment[], excludedIds: Set<number>) {
 2. **Phase 2** [DONE]: Segment toggle + live stats recalculation
 3. **Phase 3** [DONE]: Wind fine-tuning with client-side recalc (+/- 2° buttons, live update)
 4. **Phase 3.5** [DONE]: Wind direction overlay on map (arrow indicator)
-5. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
-6. **Phase 5**: Averaged performance metrics (top N segments)
+5. **Phase 5** [DONE]: Averaged performance metrics (Rep VMG = top 3 segments, distance-weighted)
+6. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
 7. **Phase 6**: Auto-analyze on upload
 
 ### Cleanup Notes

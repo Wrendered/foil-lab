@@ -291,12 +291,12 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [ ] These require re-analyze (backend call)
 - [ ] Detection settings panel (gear icon → slide-out)
 
-#### Phase 5: Averaged Performance Metrics
-- [ ] "Representative VMG" - average of top N segments (e.g., best 3-5)
-- [ ] "Representative angle" - average angle of top VMG segments
-- [ ] Avoids single-segment outliers skewing perception
-- [ ] Shows more realistic "what can I consistently achieve" picture
-- [ ] Consider weighting by distance (longer segments = more reliable)
+#### Phase 5: Averaged Performance Metrics [DONE - Dec 2024]
+- [x] "Representative VMG" - average of top 3 segments by VMG
+- [x] "Representative angle" - average angle of top VMG segments
+- [x] Distance-weighted averaging (longer segments = more reliable)
+- [x] Shows alongside "Best VMG" in stats bar for comparison
+- [x] Tooltips explaining each metric
 
 #### Phase 6: Auto-Analyze on Upload
 - [ ] Automatically trigger analysis when historical wind is found
