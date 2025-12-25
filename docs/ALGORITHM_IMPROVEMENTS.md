@@ -271,13 +271,19 @@ The map isn't just visualization - it's **validation**. Users need to see WHERE 
 - [x] VMG recalculates based on active segments only
 
 #### Phase 3: Wind Fine-tuning [DONE - Dec 2024]
-- [x] Wind adjustment controls in header (+/- 5° buttons)
+- [x] Wind adjustment controls in header (+/- 2° buttons)
 - [x] Client-side `angle_to_wind` recalculation (no backend call)
 - [x] Polar dots reposition as wind angle changes
 - [x] Segments reclassified as Upwind/Downwind based on new angles
 - [x] Stats (VMG, angles) recalculate live
 - [x] Reset button to restore calculated wind
 - [x] Blue highlight when wind is adjusted
+
+#### Phase 3.5: Wind Direction Overlay on Map
+- [ ] Add wind arrow/indicator overlay on the map
+- [ ] Visual reference to validate if wind direction looks correct
+- [ ] Arrow should update when wind is adjusted via +/- controls
+- [ ] Helps user understand segment angles relative to wind
 
 #### Phase 4: Filters for Longer Tracks
 - [ ] Time range slider (filter points before segment detection)
