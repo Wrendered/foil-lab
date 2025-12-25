@@ -296,18 +296,18 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
       {/* Wind direction overlay */}
       <div
         className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg shadow-md px-3 py-2 flex items-center gap-2 z-[1000]"
-        title={`Wind from ${windDirection}°`}
+        title={`Wind from ${Math.round(windDirection)}°`}
       >
         <svg
           width="24"
           height="24"
           viewBox="0 0 24 24"
-          className="text-blue-600"
-          style={{ transform: `rotate(${windDirection}deg)` }}
+          className="text-purple-600"
+          style={{ transform: `rotate(${windDirection - 90}deg)` }}
         >
-          {/* Arrow pointing down (wind coming FROM this direction) */}
+          {/* Arrow pointing right at 0°, rotated to show wind source direction */}
           <path
-            d="M12 2 L12 22 M12 22 L6 16 M12 22 L18 16"
+            d="M2 12 L22 12 M22 12 L16 6 M22 12 L16 18"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.5"
