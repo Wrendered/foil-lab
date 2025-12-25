@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
   Tooltip,
@@ -14,12 +14,16 @@ import { SegmentList } from './SegmentList';
 import { AnalysisResult, TrackSegment } from '@/lib/api-client';
 import { GPSPoint } from '@/lib/gpx-parser';
 import { useViewStore } from '@/stores/viewStore';
-import { Settings, Minus, Plus, RotateCcw } from 'lucide-react';
+import { useUploadStore } from '@/stores/uploadStore';
+import { Settings, Minus, Plus, RotateCcw, Pencil } from 'lucide-react';
 
 interface AnalysisViewProps {
   result: AnalysisResult;
   gpsData: GPSPoint[];
   filename: string;
+  fileId: string;
+  displayName?: string;
+  windSpeed?: number;
   onOpenSettings?: () => void;
 }
 
@@ -41,10 +45,34 @@ function recalculateSegmentAngles(segments: TrackSegment[], windDirection: numbe
   });
 }
 
-export function AnalysisView({ result, gpsData, filename, onOpenSettings }: AnalysisViewProps) {
+export function AnalysisView({ result, gpsData, filename, fileId, displayName, windSpeed, onOpenSettings }: AnalysisViewProps) {
   const excludedSegmentIds = useViewStore((state) => state.excludedSegmentIds);
   const adjustedWindDirection = useViewStore((state) => state.adjustedWindDirection);
   const setWindDirection = useViewStore((state) => state.setWindDirection);
+  const setDisplayName = useUploadStore((state) => state.setDisplayName);
+  const setFileWindData = useUploadStore((state) => state.setFileWindData);
+
+  // Editable name state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState(displayName || filename.replace('.gpx', ''));
+
+  // Editable wind speed state
+  const [isEditingWindSpeed, setIsEditingWindSpeed] = useState(false);
+  const [editWindSpeed, setEditWindSpeed] = useState(windSpeed?.toFixed(0) || '');
+
+  const handleSaveName = () => {
+    setDisplayName(fileId, editName);
+    setIsEditingName(false);
+  };
+
+  const handleSaveWindSpeed = () => {
+    const parsed = parseFloat(editWindSpeed);
+    if (!isNaN(parsed) && parsed >= 0) {
+      const currentWindDir = adjustedWindDirection ?? Math.round(result.wind_estimate.direction);
+      setFileWindData(fileId, currentWindDir, parsed);
+    }
+    setIsEditingWindSpeed(false);
+  };
 
   // Original calculated wind
   const calculatedWind = Math.round(result.wind_estimate.direction);
@@ -144,7 +172,37 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-slate-800 truncate">{filename}</h2>
+          {/* Editable track name */}
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={handleSaveName}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveName();
+                if (e.key === 'Escape') {
+                  setEditName(displayName || filename.replace('.gpx', ''));
+                  setIsEditingName(false);
+                }
+              }}
+              autoFocus
+              className="text-lg font-semibold px-2 py-0.5 border rounded min-w-[200px]"
+            />
+          ) : (
+            <div className="flex items-center gap-1 group">
+              <h2 className="text-lg font-semibold text-slate-800 truncate">
+                {displayName || filename.replace('.gpx', '')}
+              </h2>
+              <button
+                onClick={() => setIsEditingName(true)}
+                className="p-1 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded transition-opacity"
+                title="Edit name"
+              >
+                <Pencil className="h-3.5 w-3.5 text-slate-400" />
+              </button>
+            </div>
+          )}
 
           {/* Wind direction control */}
           <div className="flex items-center gap-1.5 bg-slate-100 rounded-lg px-2 py-1">
@@ -176,6 +234,43 @@ export function AnalysisView({ result, gpsData, filename, onOpenSettings }: Anal
               </button>
             )}
           </div>
+
+          {/* Wind speed (editable) */}
+          {isEditingWindSpeed ? (
+            <div className="flex items-center gap-1 text-sm">
+              <input
+                type="number"
+                value={editWindSpeed}
+                onChange={(e) => setEditWindSpeed(e.target.value)}
+                onBlur={handleSaveWindSpeed}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveWindSpeed();
+                  if (e.key === 'Escape') {
+                    setEditWindSpeed(windSpeed?.toFixed(0) || '');
+                    setIsEditingWindSpeed(false);
+                  }
+                }}
+                autoFocus
+                className="w-14 px-1 py-0.5 border rounded text-center"
+                min="0"
+                step="1"
+              />
+              <span className="text-slate-500">kts</span>
+            </div>
+          ) : (
+            <span
+              className="text-sm text-slate-500 cursor-pointer hover:bg-slate-100 rounded px-1.5 py-0.5 group"
+              onClick={() => {
+                setEditWindSpeed(windSpeed?.toFixed(0) || '');
+                setIsEditingWindSpeed(true);
+              }}
+              title="Click to edit wind speed"
+            >
+              {windSpeed ? `${windSpeed.toFixed(0)} kts` : 'speed?'}
+              <Pencil className="inline h-3 w-3 ml-1 text-slate-400 opacity-0 group-hover:opacity-100" />
+            </span>
+          )}
+
           {isWindAdjusted && (
             <span className="text-xs text-slate-400">
               (calc: {calculatedWind}°)

@@ -333,6 +333,9 @@ export default function AnalyzePage() {
                           result={currentResult}
                           gpsData={currentFile.gpsData}
                           filename={currentFile.name}
+                          fileId={currentFile.id}
+                          displayName={currentFile.displayName}
+                          windSpeed={currentFile.windSpeed}
                         />
                       </div>
                     )
