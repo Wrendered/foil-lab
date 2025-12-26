@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { FileText, Calendar, MapPin, Loader2, Check, AlertCircle, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FileText, Calendar, MapPin, Loader2, Check, AlertCircle, X, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { WindCompass } from '@/components/WindCompass';
@@ -60,7 +60,29 @@ export function TrackFileCard({
   autoAnalyze = true,
 }: TrackFileCardProps) {
   const setFileWindData = useUploadStore((state) => state.setFileWindData);
+  const setDisplayName = useUploadStore((state) => state.setDisplayName);
   const windLookup = useLookupWind();
+
+  // Editable name state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState(file.displayName || file.name.replace('.gpx', ''));
+
+  // Editable wind speed state
+  const [isEditingWind, setIsEditingWind] = useState(false);
+  const [editWindSpeed, setEditWindSpeed] = useState(file.windSpeed?.toFixed(0) || '');
+
+  const handleSaveName = () => {
+    setDisplayName(file.id, editName);
+    setIsEditingName(false);
+  };
+
+  const handleSaveWindSpeed = () => {
+    const parsed = parseFloat(editWindSpeed);
+    if (!isNaN(parsed) && parsed >= 0) {
+      setFileWindData(file.id, file.windDirection ?? 90, parsed);
+    }
+    setIsEditingWind(false);
+  };
 
   // Refs to prevent race conditions in auto-analyze
   const autoAnalyzeTriggeredRef = useRef(false);
@@ -157,7 +179,36 @@ export function TrackFileCard({
           ) : (
             <FileText className="h-5 w-5 text-slate-500 flex-shrink-0" />
           )}
-          <span className="font-medium truncate">{file.name}</span>
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={handleSaveName}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveName();
+                if (e.key === 'Escape') {
+                  setEditName(file.displayName || file.name.replace('.gpx', ''));
+                  setIsEditingName(false);
+                }
+              }}
+              autoFocus
+              className="flex-1 px-1 py-0.5 text-sm font-medium border rounded min-w-0"
+            />
+          ) : (
+            <div className="flex items-center gap-1 min-w-0 group">
+              <span className="font-medium truncate">
+                {file.displayName || file.name.replace('.gpx', '')}
+              </span>
+              <button
+                onClick={() => setIsEditingName(true)}
+                className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded transition-opacity flex-shrink-0"
+                title="Edit name"
+              >
+                <Pencil className="h-3 w-3 text-slate-400" />
+              </button>
+            </div>
+          )}
         </div>
         <Button
           variant="ghost"
@@ -213,19 +264,58 @@ export function TrackFileCard({
                 <span className="text-xs">Looking up wind conditions...</span>
               </div>
             )}
-            {lookupDone && windSpeed && !isAnalyzing && !isCompleted && (
-              <p className="text-xs text-green-700">
-                Historical: {windDirection}° at {windSpeed.toFixed(1)} kts
-                {autoAnalyze && <span className="text-blue-600 ml-1">• Auto-analyzing...</span>}
-              </p>
+            {lookupDone && (
+              <div className="text-xs">
+                {isEditingWind ? (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="text-slate-600">Wind:</span>
+                    <input
+                      type="number"
+                      value={editWindSpeed}
+                      onChange={(e) => setEditWindSpeed(e.target.value)}
+                      onBlur={handleSaveWindSpeed}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveWindSpeed();
+                        if (e.key === 'Escape') {
+                          setEditWindSpeed(windSpeed?.toFixed(0) || '');
+                          setIsEditingWind(false);
+                        }
+                      }}
+                      autoFocus
+                      className="w-12 px-1 py-0.5 border rounded"
+                      min="0"
+                      step="1"
+                    />
+                    <span className="text-slate-600">kts</span>
+                  </span>
+                ) : (
+                  <span
+                    className="group cursor-pointer hover:bg-slate-200 rounded px-1 -mx-1 text-green-700"
+                    onClick={() => {
+                      setEditWindSpeed(windSpeed?.toFixed(0) || '');
+                      setIsEditingWind(true);
+                    }}
+                    title="Click to edit wind speed"
+                  >
+                    Wind: {windDirection}° at {windSpeed ? `${windSpeed.toFixed(0)} kts` : 'unknown'}
+                    <Pencil className="inline h-3 w-3 ml-1 text-slate-400 opacity-0 group-hover:opacity-100" />
+                  </span>
+                )}
+                {!isAnalyzing && !isCompleted && autoAnalyze && windSpeed && (
+                  <span className="text-blue-600 ml-1">• Auto-analyzing...</span>
+                )}
+              </div>
             )}
-            {lookupDone && windSpeed && (isAnalyzing || isCompleted) && (
-              <p className="text-xs text-green-700">
-                Historical: {windDirection}° at {windSpeed.toFixed(1)} kts
+            {lookupDone && !windSpeed && !isEditingWind && (
+              <p className="text-xs text-slate-500">
+                Wind lookup unavailable -
+                <button
+                  onClick={() => setIsEditingWind(true)}
+                  className="text-blue-600 hover:underline ml-1"
+                >
+                  set manually
+                </button>
               </p>
-            )}
-            {lookupDone && !windSpeed && (
-              <p className="text-xs text-slate-500">Wind lookup unavailable - set manually</p>
             )}
           </div>
 
@@ -283,7 +373,7 @@ export function TrackFileCard({
       {/* Completed state */}
       {isCompleted && (
         <div className="mt-3 text-sm text-green-700 font-medium">
-          Analysis complete - see results below
+          ✓ Analysis complete
         </div>
       )}
     </Card>

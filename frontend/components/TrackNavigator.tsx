@@ -116,13 +116,15 @@ export function TrackNavigator({
               value="compare"
               onClick={onCompareMode}
               className={cn(
-                "ml-2 border-2 border-dashed",
-                isCompareMode ? "border-primary bg-primary/10" : "border-gray-300",
-                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                "ml-3 border-2 font-medium",
+                isCompareMode
+                  ? "border-purple-500 bg-purple-500 text-white"
+                  : "border-purple-400 bg-purple-50 text-purple-700 hover:bg-purple-100",
+                "data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=active]:border-purple-500"
               )}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
-              Compare All ({analyzedFiles.length})
+              Compare ({analyzedFiles.length})
             </TabsTrigger>
           )}
         </TabsList>
