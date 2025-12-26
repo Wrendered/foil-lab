@@ -25,7 +25,6 @@ import { ConfigResponse } from '@/lib/api-client';
 import { DEFAULT_PARAMETERS, DEFAULT_RANGES } from '@/lib/defaults';
 
 interface ParameterControlsProps {
-  onParametersChange?: (params: AnalysisParameters) => void;
   onReanalyze?: () => void;
   disabled?: boolean;
   isAnalyzing?: boolean;
@@ -61,7 +60,6 @@ const PARAMETER_INFO = {
 };
 
 export function ParameterControls({
-  onParametersChange,
   onReanalyze,
   disabled = false,
   isAnalyzing = false,
@@ -92,29 +90,26 @@ export function ParameterControls({
     }
   }, [config, reset]);
 
-  // Real-time parameter updates (debounced)
+  // Sync form values to global store (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
-      const newParams: AnalysisParameters = {
+      analysisStore.updateParameters({
         windDirection: watchedValues.windDirection,
         angleTolerance: watchedValues.angleTolerance,
         minSpeed: watchedValues.minSpeed,
         minDistance: watchedValues.minDistance,
         minDuration: watchedValues.minDuration,
-      };
-
-      analysisStore.updateParameters(newParams);
-      onParametersChange?.(newParams);
-    }, 500);
+      });
+    }, 300);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues.windDirection,
     watchedValues.angleTolerance,
     watchedValues.minSpeed,
     watchedValues.minDistance,
     watchedValues.minDuration,
-    onParametersChange,
   ]);
 
   const handleResetToDefaults = () => {
@@ -211,9 +206,9 @@ export function ParameterControls({
               </Button>
             </div>
 
-            {/* Help text */}
+            {/* Help text - emphasize global nature */}
             <p className="text-xs text-slate-500 text-center">
-              These settings control how track segments are detected.
+              These settings apply to <span className="font-medium">all tracks</span> when re-analyzed.
               {isAnalyzing && (
                 <span className="text-blue-600 block mt-1">Analysis in progress...</span>
               )}

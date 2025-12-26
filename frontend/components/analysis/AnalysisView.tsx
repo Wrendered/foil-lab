@@ -93,10 +93,7 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
   // Effective wind direction (adjusted or calculated)
   const effectiveWind = adjustedWindDirection !== null ? adjustedWindDirection : calculatedWind;
 
-  // Reset adjusted wind when result changes (new file analyzed)
-  useEffect(() => {
-    setWindDirection(null);
-  }, [result, setWindDirection]);
+  // Note: viewStore reset is handled by page.tsx when switching tracks or re-analyzing
 
   // Recalculate segments with effective wind direction
   const adjustedSegments = useMemo(() => {

@@ -72,11 +72,12 @@ export default function TestComponents() {
           </div>
 
           <div className="mb-6">
-            <h3 className="font-medium mb-2">Analysis Store</h3>
+            <h3 className="font-medium mb-2">Analysis Store (Global Settings)</h3>
             <div className="space-y-2">
               <p>Wind Direction: {analysisStore.parameters.windDirection}°</p>
-              <p>VMG Highlight: {analysisStore.vmgHighlightEnabled ? 'On' : 'Off'}</p>
-              <p>Wind Lines: {analysisStore.windLinesEnabled ? 'On' : 'Off'}</p>
+              <p>Angle Tolerance: {analysisStore.parameters.angleTolerance}°</p>
+              <p>Min Speed: {analysisStore.parameters.minSpeed} kts</p>
+              <p>Is Analyzing: {analysisStore.isAnalyzing ? 'Yes' : 'No'}</p>
               <div className="flex gap-2">
                 <Button
                   onClick={() =>
@@ -87,11 +88,11 @@ export default function TestComponents() {
                   Set Wind 270°
                 </Button>
                 <Button
-                  onClick={() => analysisStore.setVmgHighlight(!analysisStore.vmgHighlightEnabled)}
+                  onClick={() => analysisStore.reset()}
                   size="sm"
                   variant="outline"
                 >
-                  Toggle VMG
+                  Reset
                 </Button>
               </div>
             </div>

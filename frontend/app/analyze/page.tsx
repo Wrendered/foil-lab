@@ -8,6 +8,7 @@ import { TrackNavigator } from '@/components/TrackNavigator';
 import { ComparisonView } from '@/components/ComparisonView';
 import { useUploadStore } from '@/stores/uploadStore';
 import { useAnalysisStore } from '@/stores/analysisStore';
+import { useViewStore } from '@/stores/viewStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientOnly } from '@/components/ClientOnly';
@@ -21,6 +22,7 @@ import { DEFAULT_PARAMETERS } from '@/lib/defaults';
 export default function AnalyzePage() {
   const uploadStore = useUploadStore();
   const analysisStore = useAnalysisStore();
+  const viewStore = useViewStore();
   const { addToast } = useToast();
   const [isCompareMode, setIsCompareMode] = useState(false);
 
@@ -73,15 +75,20 @@ export default function AnalyzePage() {
 
   const handleAnalyzeTrack = (file: File, windDirection: number) => {
     const fileWithMeta = uploadStore.files.find((f) => f.file === file);
-    if (!fileWithMeta) return;
+    if (!fileWithMeta) {
+      addToast({
+        title: 'Re-analyze Failed',
+        description: 'File reference lost. Please re-upload the file.',
+        variant: 'error',
+      });
+      return;
+    }
 
-    // Update wind direction in params for this analysis
     const params = {
       ...analysisStore.parameters,
       windDirection,
     };
 
-    // Start analysis
     analysisStore.setAnalyzing(true);
 
     trackAnalysis.mutate(
@@ -92,33 +99,16 @@ export default function AnalyzePage() {
       },
       {
         onSuccess: (result) => {
-          // Update analysis store with results
-          analysisStore.setSegments(result.segments || []);
-          analysisStore.setWindAnalysis({
-            estimatedDirection: result.wind_estimate.direction,
-            confidence: result.wind_estimate.confidence,
-            algorithmDirection: result.wind_estimate.direction,
-            isOverridden: false,
-          });
-          analysisStore.setPerformanceMetrics({
-            avgSpeed: result.performance_metrics.avg_speed,
-            avgUpwindAngle: result.performance_metrics.avg_upwind_angle,
-            bestUpwindAngle: result.performance_metrics.best_upwind_angle,
-            vmgUpwind: result.performance_metrics.vmg_upwind,
-            vmgDownwind: result.performance_metrics.vmg_downwind,
-            portTackCount: result.performance_metrics.port_tack_count,
-            starboardTackCount: result.performance_metrics.starboard_tack_count,
-          });
           analysisStore.setAnalyzing(false);
-          
-          // Set this as the current file if no file is currently selected
+          viewStore.reset();
+
           if (!uploadStore.currentFileId) {
             uploadStore.setCurrentFileId(fileWithMeta.id);
           }
 
           addToast({
             title: 'Analysis Complete',
-            description: `Successfully analyzed ${file.name}`,
+            description: `Found ${result.segments?.length || 0} segments`,
             variant: 'success',
           });
         },
@@ -131,7 +121,7 @@ export default function AnalyzePage() {
             title,
             description,
             variant: 'error',
-            duration: 8000, // Show longer for errors
+            duration: 8000,
           });
         },
       }
@@ -192,8 +182,10 @@ export default function AnalyzePage() {
     };
   };
 
-  // Handle track selection
+  // Handle track selection - reset view state when switching tracks
   const handleTrackSelect = (fileId: string) => {
+    // Reset per-track view state (wind override, segment exclusions, hover)
+    viewStore.reset();
     uploadStore.setCurrentFileId(fileId);
     setIsCompareMode(false);
   };
@@ -263,17 +255,16 @@ export default function AnalyzePage() {
 
             {/* Parameter Controls */}
             <ParameterControls
-              onParametersChange={(params) => {
-                // Parameters already updated via store in ParameterControls
-                // Could add analytics tracking here if needed
-              }}
               onReanalyze={() => {
-                // Re-analyze current file with new parameters
+                // Re-analyze with file's wind direction (not global default)
                 if (currentFile) {
-                  handleAnalyzeTrack(currentFile.file, analysisStore.parameters.windDirection);
+                  const windDir = currentFile.windDirection
+                    ?? currentFile.result?.wind_estimate?.direction
+                    ?? analysisStore.parameters.windDirection;
+                  handleAnalyzeTrack(currentFile.file, windDir);
                 }
               }}
-              disabled={analysisStore.isAnalyzing || !connectionStatus.isConnected}
+              disabled={analysisStore.isAnalyzing || !connectionStatus.isConnected || !currentFile}
               isAnalyzing={analysisStore.isAnalyzing}
             />
           </div>
