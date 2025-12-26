@@ -115,20 +115,20 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
 
   return (
     <div className="bg-slate-50 border-t border-slate-200 px-3 py-2">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Label */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 flex-shrink-0">
+        <div className="flex items-center gap-1 text-xs text-slate-500 flex-shrink-0">
           <Clock className="h-3.5 w-3.5" />
           <span className="font-medium">Trim:</span>
         </div>
 
         {/* Start time */}
-        <span className="text-xs font-medium text-slate-600 w-12 text-right flex-shrink-0">
+        <span className="text-xs font-medium text-slate-600 flex-shrink-0">
           {displayTimes ? formatTime(displayTimes.startTime) : '--:--'}
         </span>
 
         {/* Slider */}
-        <div className="flex-1 min-w-[100px]">
+        <div className="flex-1 min-w-[60px]">
           <Slider
             value={sliderValues}
             onValueChange={handleSliderChange}
@@ -140,13 +140,8 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
         </div>
 
         {/* End time */}
-        <span className="text-xs font-medium text-slate-600 w-12 flex-shrink-0">
+        <span className="text-xs font-medium text-slate-600 flex-shrink-0">
           {displayTimes ? formatTime(displayTimes.endTime) : '--:--'}
-        </span>
-
-        {/* Duration */}
-        <span className="text-xs text-slate-400 w-14 flex-shrink-0 hidden sm:block">
-          ({displayTimes ? formatDuration(displayTimes.startTime.getTime(), displayTimes.endTime.getTime()) : '--'})
         </span>
 
         {/* Reanalyze button - always visible */}
@@ -155,9 +150,9 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
           disabled={disabled || !isTimeFiltered}
           size="sm"
           variant={isTimeFiltered ? "default" : "outline"}
-          className="h-7 px-3 text-xs flex-shrink-0"
+          className="h-6 px-2 text-xs flex-shrink-0"
         >
-          {isTimeFiltered ? 'Reanalyze' : 'Full track'}
+          {isTimeFiltered ? 'Reanalyze' : 'Full'}
         </Button>
 
         {/* Reset button - only when filtered */}
