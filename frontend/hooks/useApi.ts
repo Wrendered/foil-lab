@@ -58,18 +58,15 @@ export function useTrackAnalysis() {
       params: Partial<AnalysisParameters>;
       fileId: string;
     }) => {
-      // Progress callback
       const onProgress = (progress: number) => {
         uploadStore.updateFileProgress(fileId, progress);
       };
 
-      // Update status to uploading
       uploadStore.updateFileStatus(fileId, 'uploading');
 
       try {
         const result = await analyzeTrack(file, params, onProgress);
-        
-        // Update status to completed
+
         uploadStore.updateFileStatus(fileId, 'completed');
         uploadStore.setFileResult(fileId, result);
 
@@ -80,13 +77,12 @@ export function useTrackAnalysis() {
             const { gpsPoints, metadata } = await parseGPXFile(file);
             uploadStore.setFileGPSData(fileId, gpsPoints, metadata);
           } catch (error) {
-            console.error('Failed to parse GPS data for', file.name, ':', error);
+            console.error('Failed to parse GPS data:', error);
           }
         }
 
         return result;
       } catch (error) {
-        // Update status to error
         const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
         uploadStore.updateFileStatus(fileId, 'error', errorMessage);
         throw error;

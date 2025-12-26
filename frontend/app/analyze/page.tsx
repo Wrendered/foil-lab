@@ -75,15 +75,20 @@ export default function AnalyzePage() {
 
   const handleAnalyzeTrack = (file: File, windDirection: number) => {
     const fileWithMeta = uploadStore.files.find((f) => f.file === file);
-    if (!fileWithMeta) return;
+    if (!fileWithMeta) {
+      addToast({
+        title: 'Re-analyze Failed',
+        description: 'File reference lost. Please re-upload the file.',
+        variant: 'error',
+      });
+      return;
+    }
 
-    // Update wind direction in params for this analysis
     const params = {
       ...analysisStore.parameters,
       windDirection,
     };
 
-    // Start analysis
     analysisStore.setAnalyzing(true);
 
     trackAnalysis.mutate(
@@ -94,21 +99,16 @@ export default function AnalyzePage() {
       },
       {
         onSuccess: (result) => {
-          // Result is stored in uploadStore by useTrackAnalysis hook
-          // Just update UI state and show toast
           analysisStore.setAnalyzing(false);
-
-          // Reset view state for fresh display of new results
           viewStore.reset();
 
-          // Set this as the current file if no file is currently selected
           if (!uploadStore.currentFileId) {
             uploadStore.setCurrentFileId(fileWithMeta.id);
           }
 
           addToast({
             title: 'Analysis Complete',
-            description: `Successfully analyzed ${file.name}`,
+            description: `Found ${result.segments?.length || 0} segments`,
             variant: 'success',
           });
         },
@@ -121,7 +121,7 @@ export default function AnalyzePage() {
             title,
             description,
             variant: 'error',
-            duration: 8000, // Show longer for errors
+            duration: 8000,
           });
         },
       }
@@ -256,9 +256,12 @@ export default function AnalyzePage() {
             {/* Parameter Controls */}
             <ParameterControls
               onReanalyze={() => {
-                // Re-analyze current file with new parameters
+                // Re-analyze with file's wind direction (not global default)
                 if (currentFile) {
-                  handleAnalyzeTrack(currentFile.file, analysisStore.parameters.windDirection);
+                  const windDir = currentFile.windDirection
+                    ?? currentFile.result?.wind_estimate?.direction
+                    ?? analysisStore.parameters.windDirection;
+                  handleAnalyzeTrack(currentFile.file, windDir);
                 }
               }}
               disabled={analysisStore.isAnalyzing || !connectionStatus.isConnected}
