@@ -92,6 +92,7 @@ Three Zustand stores with clear separation of concerns:
 // - adjustedWindDirection (manual wind override)
 // - excludedSegmentIds (toggled segments)
 // - hoveredSegmentId
+// - filterBounds (time/spatial filter for trim feature)
 ```
 
 ## Core Types
@@ -155,6 +156,7 @@ try {
 | `TrackMap` | Track visualization with segment overlays, wind arrow | Active |
 | `LinkedPolarPlot` | Interactive polar chart linked to map/list | Active |
 | `SegmentList` | Segment table with include/exclude toggles | Active |
+| `FilterControls` | Time trim slider at bottom of map | Active |
 | `TrackNavigator` | Tabs for switching between analyzed tracks | Active |
 | `ComparisonView` | Track comparison with overlay polar + stats | Active |
 | `ComparisonPolarPlot` | Multi-track overlay polar chart | Active |
@@ -217,11 +219,14 @@ interface ViewState {
   hoveredSegmentId: number | null;
   excludedSegmentIds: Set<number>;
   adjustedWindDirection: number | null;  // null = use calculated
+  filterBounds: FilterBounds;  // time/spatial bounds for trim feature
 
   // Actions - reset() clears all when switching tracks
   setHoveredSegment: (id: number | null) => void;
   toggleSegmentExclusion: (id: number) => void;
   setWindDirection: (degrees: number | null) => void;
+  setFilterBounds: (bounds: Partial<FilterBounds>) => void;
+  clearFilterBounds: () => void;
   reset: () => void;  // Called by page.tsx on track switch
 }
 ```
@@ -260,7 +265,7 @@ function calculateStats(segments: Segment[], excludedIds: Set<number>) {
 6. **Phase 6** [DONE]: Auto-analyze on upload (when historical wind found)
 7. **UI Cleanup** [DONE]: Collapsible parameters, better descriptions, tooltips
 8. **Phase 3.4** [DONE]: Track comparison (overlay polar + stats table)
-9. **Phase 4** [NEXT]: Time/spatial filters (requires re-analyze)
+9. **Phase 4** [DONE]: Time filter with live map preview (trim slider at map bottom)
 
 ### Cleanup Notes
 
