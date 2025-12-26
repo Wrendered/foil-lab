@@ -60,6 +60,19 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
   const [isEditingWindSpeed, setIsEditingWindSpeed] = useState(false);
   const [editWindSpeed, setEditWindSpeed] = useState(windSpeed?.toFixed(0) || '');
 
+  // Sync editable values when props change (and not currently editing)
+  useEffect(() => {
+    if (!isEditingName) {
+      setEditName(displayName || filename.replace('.gpx', ''));
+    }
+  }, [displayName, filename, isEditingName]);
+
+  useEffect(() => {
+    if (!isEditingWindSpeed) {
+      setEditWindSpeed(windSpeed?.toFixed(0) || '');
+    }
+  }, [windSpeed, isEditingWindSpeed]);
+
   const handleSaveName = () => {
     setDisplayName(fileId, editName);
     setIsEditingName(false);

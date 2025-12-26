@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUploadStore } from '@/stores/uploadStore';
 import { formatSpeed } from '@/lib/colors';
@@ -24,6 +24,13 @@ function EditableTrackName({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName || fileName.replace('.gpx', ''));
   const setDisplayName = useUploadStore((state) => state.setDisplayName);
+
+  // Sync editValue when displayName prop changes (and not currently editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(displayName || fileName.replace('.gpx', ''));
+    }
+  }, [displayName, fileName, isEditing]);
 
   const handleSave = () => {
     setDisplayName(fileId, editValue);
@@ -86,6 +93,13 @@ function EditableWindSpeed({
   const [editValue, setEditValue] = useState(windSpeed?.toFixed(0) || '');
   const setFileWindData = useUploadStore((state) => state.setFileWindData);
 
+  // Sync editValue when windSpeed prop changes (and not currently editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(windSpeed?.toFixed(0) || '');
+    }
+  }, [windSpeed, isEditing]);
+
   const handleSave = () => {
     const parsed = parseFloat(editValue);
     if (!isNaN(parsed) && parsed >= 0) {
@@ -146,9 +160,11 @@ export function ComparisonView() {
   }, [files]);
 
   // Auto-select first 2 tracks on mount if none selected
-  useMemo(() => {
-    if (selectedTrackIds.size === 0 && analyzedFiles.length >= 2) {
+  const initializedRef = useRef(false);
+  useEffect(() => {
+    if (!initializedRef.current && analyzedFiles.length >= 2) {
       setSelectedTrackIds(new Set(analyzedFiles.slice(0, 2).map((f) => f.id)));
+      initializedRef.current = true;
     }
   }, [analyzedFiles.length]);
 
