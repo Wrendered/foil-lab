@@ -263,10 +263,6 @@ export default function AnalyzePage() {
 
             {/* Parameter Controls */}
             <ParameterControls
-              onParametersChange={(params) => {
-                // Parameters already updated via store in ParameterControls
-                // Could add analytics tracking here if needed
-              }}
               onReanalyze={() => {
                 // Re-analyze current file with new parameters
                 if (currentFile) {

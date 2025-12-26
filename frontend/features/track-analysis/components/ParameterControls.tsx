@@ -93,6 +93,8 @@ export function ParameterControls({
   }, [config, reset]);
 
   // Real-time parameter updates (debounced)
+  // Note: onParametersChange intentionally NOT in deps - it's recreated each render
+  // and we only want to trigger on actual value changes
   useEffect(() => {
     const timer = setTimeout(() => {
       const newParams: AnalysisParameters = {
@@ -108,13 +110,14 @@ export function ParameterControls({
     }, 500);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues.windDirection,
     watchedValues.angleTolerance,
     watchedValues.minSpeed,
     watchedValues.minDistance,
     watchedValues.minDuration,
-    onParametersChange,
+    // onParametersChange intentionally excluded - causes infinite re-renders
   ]);
 
   const handleResetToDefaults = () => {
