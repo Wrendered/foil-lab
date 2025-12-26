@@ -11,6 +11,7 @@ import {
 import { TrackMap } from './TrackMap';
 import { LinkedPolarPlot } from './LinkedPolarPlot';
 import { SegmentList } from './SegmentList';
+import { FilterControls } from './FilterControls';
 import { AnalysisResult, TrackSegment } from '@/lib/api-client';
 import { GPSPoint } from '@/lib/gpx-parser';
 import { useViewStore } from '@/stores/viewStore';
@@ -25,6 +26,8 @@ interface AnalysisViewProps {
   displayName?: string;
   windSpeed?: number;
   onOpenSettings?: () => void;
+  onReanalyzeWithFilters?: () => void;
+  isAnalyzing?: boolean;
 }
 
 // Recalculate angle_to_wind for segments based on new wind direction
@@ -45,7 +48,7 @@ function recalculateSegmentAngles(segments: TrackSegment[], windDirection: numbe
   });
 }
 
-export function AnalysisView({ result, gpsData, filename, fileId, displayName, windSpeed, onOpenSettings }: AnalysisViewProps) {
+export function AnalysisView({ result, gpsData, filename, fileId, displayName, windSpeed, onOpenSettings, onReanalyzeWithFilters, isAnalyzing }: AnalysisViewProps) {
   const excludedSegmentIds = useViewStore((state) => state.excludedSegmentIds);
   const adjustedWindDirection = useViewStore((state) => state.adjustedWindDirection);
   const setWindDirection = useViewStore((state) => state.setWindDirection);
@@ -287,15 +290,26 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
             </span>
           )}
         </div>
-        {onOpenSettings && (
-          <button
-            onClick={onOpenSettings}
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-            title="Detection settings"
-          >
-            <Settings className="h-5 w-5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Filter Controls */}
+          {onReanalyzeWithFilters && (
+            <FilterControls
+              gpsData={gpsData}
+              onApplyFilters={onReanalyzeWithFilters}
+              disabled={isAnalyzing}
+            />
+          )}
+
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              title="Detection settings"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main content - Map and Right Panel side by side */}

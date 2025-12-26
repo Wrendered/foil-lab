@@ -9,6 +9,7 @@ import {
   ConfigResponse,
   HistoricalWindResponse,
   APIError,
+  FilterParameters,
 } from '@/lib/api-client';
 import { AnalysisParameters } from '@/stores/analysisStore';
 import { useUploadStore } from '@/stores/uploadStore';
@@ -53,10 +54,12 @@ export function useTrackAnalysis() {
       file,
       params,
       fileId,
+      filters,
     }: {
       file: File;
       params: Partial<AnalysisParameters>;
       fileId: string;
+      filters?: FilterParameters;
     }) => {
       const onProgress = (progress: number) => {
         uploadStore.updateFileProgress(fileId, progress);
@@ -65,7 +68,7 @@ export function useTrackAnalysis() {
       uploadStore.updateFileStatus(fileId, 'uploading');
 
       try {
-        const result = await analyzeTrack(file, params, onProgress);
+        const result = await analyzeTrack(file, params, onProgress, filters);
 
         uploadStore.updateFileStatus(fileId, 'completed');
         uploadStore.setFileResult(fileId, result);
