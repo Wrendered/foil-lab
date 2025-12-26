@@ -47,9 +47,12 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
   const timeBounds = useMemo(() => {
     if (!gpsData || gpsData.length === 0) return null;
 
+    // Time is stored as ISO string, need to parse it
     const times = gpsData
       .map((p) => p.time)
-      .filter((t): t is Date => t !== null && t !== undefined);
+      .filter((t): t is string => t !== null && t !== undefined && t !== '')
+      .map((t) => new Date(t))
+      .filter((d) => !isNaN(d.getTime()));
 
     if (times.length < 2) return null;
 
