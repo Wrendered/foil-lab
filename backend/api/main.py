@@ -349,6 +349,17 @@ async def analyze_track(
         lat_bounds = (lat_min, lat_max) if lat_min is not None and lat_max is not None else None
         lon_bounds = (lon_min, lon_max) if lon_min is not None and lon_max is not None else None
 
+        # Validate filter parameters
+        from core.filtering import validate_filter_params
+        is_valid, error_msg = validate_filter_params(
+            time_start=parsed_time_start,
+            time_end=parsed_time_end,
+            lat_bounds=lat_bounds,
+            lon_bounds=lon_bounds
+        )
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+
         # Use our track analysis function
         result = analyze_track_data(
             track_data=track_data,

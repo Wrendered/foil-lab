@@ -21,17 +21,6 @@ function formatTime(date: Date): string {
   });
 }
 
-function formatDuration(startMs: number, endMs: number): string {
-  const durationMs = endMs - startMs;
-  const minutes = Math.floor(durationMs / 60000);
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${mins}m`;
-}
-
 export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterControlsProps) {
   const filterBounds = useViewStore((state) => state.filterBounds);
   const setFilterBounds = useViewStore((state) => state.setFilterBounds);
