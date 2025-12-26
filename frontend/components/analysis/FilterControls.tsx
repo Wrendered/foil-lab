@@ -116,10 +116,10 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
   return (
     <div className="bg-slate-50 border-t border-slate-200 px-3 py-2">
       <div className="flex items-center gap-3">
-        {/* Time icon and label */}
+        {/* Label */}
         <div className="flex items-center gap-1.5 text-xs text-slate-500 flex-shrink-0">
           <Clock className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Time:</span>
+          <span className="font-medium">Trim:</span>
         </div>
 
         {/* Start time */}
@@ -145,31 +145,30 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
         </span>
 
         {/* Duration */}
-        <span className="text-xs text-slate-400 w-10 flex-shrink-0 hidden sm:block">
-          {displayTimes ? formatDuration(displayTimes.startTime.getTime(), displayTimes.endTime.getTime()) : '--'}
+        <span className="text-xs text-slate-400 w-14 flex-shrink-0 hidden sm:block">
+          ({displayTimes ? formatDuration(displayTimes.startTime.getTime(), displayTimes.endTime.getTime()) : '--'})
         </span>
 
-        {/* Reset button */}
+        {/* Reanalyze button - always visible */}
+        <Button
+          onClick={onApplyFilters}
+          disabled={disabled || !isTimeFiltered}
+          size="sm"
+          variant={isTimeFiltered ? "default" : "outline"}
+          className="h-7 px-3 text-xs flex-shrink-0"
+        >
+          {isTimeFiltered ? 'Reanalyze' : 'Full track'}
+        </Button>
+
+        {/* Reset button - only when filtered */}
         {isTimeFiltered && (
           <button
             onClick={handleReset}
             className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors flex-shrink-0"
-            title="Reset to full range"
+            title="Reset to full track"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
-        )}
-
-        {/* Apply button */}
-        {isTimeFiltered && (
-          <Button
-            onClick={onApplyFilters}
-            disabled={disabled}
-            size="sm"
-            className="h-7 px-2 text-xs flex-shrink-0"
-          >
-            Apply
-          </Button>
         )}
       </div>
     </div>
