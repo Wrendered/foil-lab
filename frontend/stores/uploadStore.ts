@@ -12,6 +12,7 @@ export interface FileWithMetadata {
   uploadProgress: number;
   status: 'pending' | 'uploading' | 'processing' | 'completed' | 'error';
   error?: string;
+  warning?: string; // Non-blocking warning (e.g., GPS parse failed but analysis succeeded)
   result?: AnalysisResult;
   gpsData?: GPSPoint[];
   metadata?: GPXMetadata;
@@ -32,6 +33,7 @@ interface UploadState {
   updateFileStatus: (id: string, status: FileWithMetadata['status'], error?: string) => void;
   setFileResult: (id: string, result: AnalysisResult) => void;
   setFileGPSData: (id: string, gpsData: GPSPoint[], metadata: GPXMetadata) => void;
+  setFileWarning: (id: string, warning: string) => void;
   setFileWindData: (id: string, windDirection: number, windSpeed?: number) => void;
   setDisplayName: (id: string, displayName: string) => void;
   setCurrentFileId: (id: string | null) => void;
@@ -102,6 +104,14 @@ export const useUploadStore = create<UploadState>()(
         if (file) {
           file.gpsData = gpsData;
           file.metadata = metadata;
+        }
+      }),
+
+    setFileWarning: (id, warning) =>
+      set((state) => {
+        const file = state.files.find((f) => f.id === id);
+        if (file) {
+          file.warning = warning;
         }
       }),
 

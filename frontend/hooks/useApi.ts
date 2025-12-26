@@ -81,6 +81,7 @@ export function useTrackAnalysis() {
             uploadStore.setFileGPSData(fileId, gpsPoints, metadata);
           } catch (error) {
             console.error('Failed to parse GPS data:', error);
+            uploadStore.setFileWarning(fileId, 'Map visualization unavailable: GPS data could not be parsed');
           }
         }
 

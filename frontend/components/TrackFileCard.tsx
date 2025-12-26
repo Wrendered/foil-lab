@@ -376,6 +376,14 @@ export function TrackFileCard({
           ✓ Analysis complete
         </div>
       )}
+
+      {/* Warning (non-blocking issue) */}
+      {file.warning && (
+        <div className="mt-2 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 rounded p-2">
+          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+          <span>{file.warning}</span>
+        </div>
+      )}
     </Card>
   );
 }
