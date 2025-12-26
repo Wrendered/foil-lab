@@ -79,7 +79,7 @@ Three Zustand stores with clear separation of concerns:
 
 ```typescript
 // stores/uploadStore.ts - Per-track data (source of truth)
-// - files[] with result, gpsData, displayName, windSpeed
+// - files[] with result, gpsData, displayName, windSpeed, warning
 // - currentFileId
 
 // stores/analysisStore.ts - GLOBAL settings

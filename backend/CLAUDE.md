@@ -22,6 +22,7 @@ backend/
 │   │   ├── algorithms.py       # Iterative algorithm
 │   │   ├── factory.py          # Algorithm factory
 │   │   └── models.py           # WindEstimate dataclass
+│   ├── filtering.py            # Time/spatial filtering
 │   ├── metrics.py              # Basic metrics
 │   ├── metrics_advanced.py     # VMG, quality scoring
 │   ├── calculations.py         # Wind angle calculations
@@ -81,6 +82,10 @@ Returns historical wind direction and speed from Open-Meteo (free, no API key).
 - `min_duration` (float): Minimum segment duration (seconds)
 - `min_distance` (float): Minimum segment distance (meters)
 - `min_speed` (float): Minimum speed threshold (knots)
+- `time_start` (string, optional): ISO 8601 timestamp to filter track start
+- `time_end` (string, optional): ISO 8601 timestamp to filter track end
+- `lat_min/lat_max` (float, optional): Latitude bounds for spatial filter
+- `lon_min/lon_max` (float, optional): Longitude bounds for spatial filter
 
 ## Wind Estimation Algorithm
 
