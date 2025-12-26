@@ -8,6 +8,7 @@ import { TrackNavigator } from '@/components/TrackNavigator';
 import { ComparisonView } from '@/components/ComparisonView';
 import { useUploadStore } from '@/stores/uploadStore';
 import { useAnalysisStore } from '@/stores/analysisStore';
+import { useViewStore } from '@/stores/viewStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientOnly } from '@/components/ClientOnly';
@@ -21,6 +22,7 @@ import { DEFAULT_PARAMETERS } from '@/lib/defaults';
 export default function AnalyzePage() {
   const uploadStore = useUploadStore();
   const analysisStore = useAnalysisStore();
+  const viewStore = useViewStore();
   const { addToast } = useToast();
   const [isCompareMode, setIsCompareMode] = useState(false);
 
@@ -92,25 +94,13 @@ export default function AnalyzePage() {
       },
       {
         onSuccess: (result) => {
-          // Update analysis store with results
-          analysisStore.setSegments(result.segments || []);
-          analysisStore.setWindAnalysis({
-            estimatedDirection: result.wind_estimate.direction,
-            confidence: result.wind_estimate.confidence,
-            algorithmDirection: result.wind_estimate.direction,
-            isOverridden: false,
-          });
-          analysisStore.setPerformanceMetrics({
-            avgSpeed: result.performance_metrics.avg_speed,
-            avgUpwindAngle: result.performance_metrics.avg_upwind_angle,
-            bestUpwindAngle: result.performance_metrics.best_upwind_angle,
-            vmgUpwind: result.performance_metrics.vmg_upwind,
-            vmgDownwind: result.performance_metrics.vmg_downwind,
-            portTackCount: result.performance_metrics.port_tack_count,
-            starboardTackCount: result.performance_metrics.starboard_tack_count,
-          });
+          // Result is stored in uploadStore by useTrackAnalysis hook
+          // Just update UI state and show toast
           analysisStore.setAnalyzing(false);
-          
+
+          // Reset view state for fresh display of new results
+          viewStore.reset();
+
           // Set this as the current file if no file is currently selected
           if (!uploadStore.currentFileId) {
             uploadStore.setCurrentFileId(fileWithMeta.id);
@@ -192,8 +182,10 @@ export default function AnalyzePage() {
     };
   };
 
-  // Handle track selection
+  // Handle track selection - reset view state when switching tracks
   const handleTrackSelect = (fileId: string) => {
+    // Reset per-track view state (wind override, segment exclusions, hover)
+    viewStore.reset();
     uploadStore.setCurrentFileId(fileId);
     setIsCompareMode(false);
   };

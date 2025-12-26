@@ -75,16 +75,23 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 ## State Management
 
-```typescript
-// stores/analysisStore.ts - Analysis results
-// stores/uploadStore.ts - File upload state
+Three Zustand stores with clear separation of concerns:
 
-// Zustand pattern:
-const useAnalysisStore = create<AnalysisState>((set) => ({
-  results: null,
-  loading: false,
-  setResults: (results) => set({ results }),
-}));
+```typescript
+// stores/uploadStore.ts - Per-track data (source of truth)
+// - files[] with result, gpsData, displayName, windSpeed
+// - currentFileId
+
+// stores/analysisStore.ts - GLOBAL settings
+// - parameters (windDirection, angleTolerance, minSpeed, minDistance, minDuration)
+// - isAnalyzing, error (UI state)
+// Note: Parameters apply to ALL tracks. When re-analyzing, all tracks
+// use the same detection settings.
+
+// stores/viewStore.ts - Per-track VIEW state (resets on track switch)
+// - adjustedWindDirection (manual wind override)
+// - excludedSegmentIds (toggled segments)
+// - hoveredSegmentId
 ```
 
 ## Core Types
@@ -202,21 +209,25 @@ analyze/page.tsx
 
 ### Shared View State
 
-New Zustand store for coordinating map/polar/list:
+viewStore coordinates map/polar/list interactions:
 
 ```typescript
-// stores/viewStore.ts (to be created)
+// stores/viewStore.ts
 interface ViewState {
   hoveredSegmentId: number | null;
   excludedSegmentIds: Set<number>;
   adjustedWindDirection: number | null;  // null = use calculated
 
-  // Actions
+  // Actions - reset() clears all when switching tracks
   setHoveredSegment: (id: number | null) => void;
   toggleSegmentExclusion: (id: number) => void;
-  setWindDirection: (degrees: number) => void;
+  setWindDirection: (degrees: number | null) => void;
+  reset: () => void;  // Called by page.tsx on track switch
 }
 ```
+
+**Important**: viewStore is reset when switching tracks or re-analyzing.
+This is handled in `app/analyze/page.tsx` (handleTrackSelect, handleAnalyzeTrack).
 
 ### Client-Side Recalculation
 
