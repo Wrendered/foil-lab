@@ -273,11 +273,17 @@ async def analyze_track(
     min_duration: float = 10.0,
     min_distance: float = 50.0,
     min_speed: float = 5.0,
-    suspicious_angle_threshold: float = 20.0
+    suspicious_angle_threshold: float = 20.0,
+    time_start: Optional[str] = None,
+    time_end: Optional[str] = None,
+    lat_min: Optional[float] = None,
+    lat_max: Optional[float] = None,
+    lon_min: Optional[float] = None,
+    lon_max: Optional[float] = None
 ):
     """
     Analyze a GPX track file.
-    
+
     Args:
         file: GPX file to analyze
         wind_direction: Initial wind direction estimate (0-359 degrees)
@@ -286,7 +292,13 @@ async def analyze_track(
         min_distance: Minimum segment distance in meters
         min_speed: Minimum speed in knots
         suspicious_angle_threshold: Threshold for filtering suspicious angles
-        
+        time_start: Optional ISO format datetime to filter segments (keep after this time)
+        time_end: Optional ISO format datetime to filter segments (keep before this time)
+        lat_min: Optional minimum latitude for spatial filtering
+        lat_max: Optional maximum latitude for spatial filtering
+        lon_min: Optional minimum longitude for spatial filtering
+        lon_max: Optional maximum longitude for spatial filtering
+
     Returns:
         Analysis results including segments, wind estimate, and performance metrics
     """
@@ -319,6 +331,24 @@ async def analyze_track(
         if track_data.empty:
             raise HTTPException(status_code=400, detail="No valid track data found in GPX file")
         
+        # Parse time filter parameters
+        parsed_time_start = None
+        parsed_time_end = None
+        if time_start:
+            try:
+                parsed_time_start = datetime.fromisoformat(time_start.replace('Z', '+00:00'))
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=f"Invalid time_start format: {e}")
+        if time_end:
+            try:
+                parsed_time_end = datetime.fromisoformat(time_end.replace('Z', '+00:00'))
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=f"Invalid time_end format: {e}")
+
+        # Build spatial bounds tuples
+        lat_bounds = (lat_min, lat_max) if lat_min is not None and lat_max is not None else None
+        lon_bounds = (lon_min, lon_max) if lon_min is not None and lon_max is not None else None
+
         # Use our track analysis function
         result = analyze_track_data(
             track_data=track_data,
@@ -328,7 +358,11 @@ async def analyze_track(
             min_duration=min_duration,
             min_distance=min_distance,
             min_speed=min_speed,
-            suspicious_angle_threshold=suspicious_angle_threshold
+            suspicious_angle_threshold=suspicious_angle_threshold,
+            time_start=parsed_time_start,
+            time_end=parsed_time_end,
+            lat_bounds=lat_bounds,
+            lon_bounds=lon_bounds
         )
         
         # Count tacks

@@ -9,9 +9,11 @@ import pandas as pd
 import logging
 import math
 import uuid
+from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
 
 from core.gpx import load_gpx_file
+from core.filtering import apply_filters
 from core.segments import find_consistent_angle_stretches
 from core.calculations import analyze_wind_angles
 from core.wind.factory import estimate_wind_direction_factory, WindEstimationParams
@@ -100,15 +102,19 @@ def analyze_track_data(track_data: pd.DataFrame,
                       metadata: Optional[Dict[str, Any]] = None,
                       angle_tolerance: float = 25,
                       min_distance: float = DEFAULT_MIN_DISTANCE,
-                      min_duration: float = DEFAULT_MIN_DURATION, 
+                      min_duration: float = DEFAULT_MIN_DURATION,
                       min_speed: float = DEFAULT_MIN_SPEED,
-                      suspicious_angle_threshold: float = 20) -> TrackAnalysisResult:
+                      suspicious_angle_threshold: float = 20,
+                      time_start: Optional[datetime] = None,
+                      time_end: Optional[datetime] = None,
+                      lat_bounds: Optional[Tuple[float, float]] = None,
+                      lon_bounds: Optional[Tuple[float, float]] = None) -> TrackAnalysisResult:
     """
     Analyze track data that's already loaded into a DataFrame.
-    
+
     This function provides the exact same analysis pipeline as analyze_track_file
     but works with data already in memory (e.g., from session state).
-    
+
     Args:
         track_data: DataFrame containing track data
         initial_wind_direction: Initial wind direction estimate in degrees
@@ -116,13 +122,17 @@ def analyze_track_data(track_data: pd.DataFrame,
         metadata: Optional metadata dict
         angle_tolerance: Angle tolerance for segment detection
         min_distance: Minimum segment distance in meters
-        min_duration: Minimum segment duration in seconds  
+        min_duration: Minimum segment duration in seconds
         min_speed: Minimum speed filter in knots
         suspicious_angle_threshold: Threshold for wind estimation
-        
+        time_start: Optional start of time range filter (keep segments after this)
+        time_end: Optional end of time range filter (keep segments before this)
+        lat_bounds: Optional (min_lat, max_lat) for spatial filtering
+        lon_bounds: Optional (min_lon, max_lon) for spatial filtering
+
     Returns:
         TrackAnalysisResult: Complete analysis results
-        
+
     Raises:
         Exception: If analysis fails
     """
@@ -145,7 +155,19 @@ def analyze_track_data(track_data: pd.DataFrame,
         if not segments.empty:
             segments = segments[segments['avg_speed_knots'] >= min_speed]
             logger.info(f"After speed filter: {len(segments)} segments")
-        
+
+        # Step 3.5: Apply time/spatial filters (Phase 4)
+        if not segments.empty and (time_start or time_end or lat_bounds or lon_bounds):
+            segments = apply_filters(
+                segments=segments,
+                track_data=track_data,
+                time_start=time_start,
+                time_end=time_end,
+                lat_bounds=lat_bounds,
+                lon_bounds=lon_bounds
+            )
+            logger.info(f"After time/spatial filters: {len(segments)} segments")
+
         if segments.empty:
             logger.warning(f"No segments found for {filename}")
             return TrackAnalysisResult(
