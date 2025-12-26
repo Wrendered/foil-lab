@@ -136,19 +136,30 @@ export async function healthCheck(): Promise<{ status: string; timestamp: string
   return response.data;
 }
 
+// Filter parameters for time/spatial filtering (Phase 4)
+export interface FilterParameters {
+  timeStart?: string | null;  // ISO datetime string
+  timeEnd?: string | null;    // ISO datetime string
+  latMin?: number | null;
+  latMax?: number | null;
+  lonMin?: number | null;
+  lonMax?: number | null;
+}
+
 /**
  * Upload and analyze track with progress tracking
  */
 export async function analyzeTrack(
   file: File,
   params: Partial<AnalysisParameters>,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  filters?: FilterParameters
 ): Promise<AnalysisResult> {
   const formData = new FormData();
   formData.append('file', file);
 
   // Convert parameters to API format
-  const apiParams = {
+  const apiParams: Record<string, string | number | undefined> = {
     wind_direction: params.windDirection,
     angle_tolerance: params.angleTolerance,
     min_duration: params.minDuration,
@@ -156,9 +167,19 @@ export async function analyzeTrack(
     min_speed: params.minSpeed,
   };
 
+  // Add filter parameters if provided
+  if (filters) {
+    if (filters.timeStart) apiParams.time_start = filters.timeStart;
+    if (filters.timeEnd) apiParams.time_end = filters.timeEnd;
+    if (filters.latMin !== undefined && filters.latMin !== null) apiParams.lat_min = filters.latMin;
+    if (filters.latMax !== undefined && filters.latMax !== null) apiParams.lat_max = filters.latMax;
+    if (filters.lonMin !== undefined && filters.lonMin !== null) apiParams.lon_min = filters.lonMin;
+    if (filters.lonMax !== undefined && filters.lonMax !== null) apiParams.lon_max = filters.lonMax;
+  }
+
   const queryParams = new URLSearchParams();
   Object.entries(apiParams).forEach(([key, value]) => {
-    if (value !== undefined) {
+    if (value !== undefined && value !== null) {
       queryParams.append(key, value.toString());
     }
   });

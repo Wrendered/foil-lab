@@ -16,7 +16,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useConfig, useTrackAnalysis, useConnectionStatus } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
 import { Loader2, WifiOff, AlertCircle } from 'lucide-react';
-import { isNetworkError, isServerError, isAPIError } from '@/lib/api-client';
+import { isNetworkError, isServerError, isAPIError, FilterParameters } from '@/lib/api-client';
 import { DEFAULT_PARAMETERS } from '@/lib/defaults';
 
 export default function AnalyzePage() {
@@ -73,7 +73,7 @@ export default function AnalyzePage() {
     }
   }, [connectionStatus.status, addToast]);
 
-  const handleAnalyzeTrack = (file: File, windDirection: number) => {
+  const handleAnalyzeTrack = (file: File, windDirection: number, filters?: FilterParameters) => {
     const fileWithMeta = uploadStore.files.find((f) => f.file === file);
     if (!fileWithMeta) {
       addToast({
@@ -96,11 +96,19 @@ export default function AnalyzePage() {
         file,
         params,
         fileId: fileWithMeta.id,
+        filters,
       },
       {
         onSuccess: (result) => {
           analysisStore.setAnalyzing(false);
-          viewStore.reset();
+          // Don't reset viewStore if using filters - preserve filter state
+          if (!filters) {
+            viewStore.reset();
+          } else {
+            // Only reset hover and exclusions, keep filter bounds
+            viewStore.setHoveredSegment(null);
+            viewStore.clearExcludedSegments();
+          }
 
           if (!uploadStore.currentFileId) {
             uploadStore.setCurrentFileId(fileWithMeta.id);
@@ -126,6 +134,29 @@ export default function AnalyzePage() {
         },
       }
     );
+  };
+
+  // Handler for re-analyzing with current filter bounds
+  const handleReanalyzeWithFilters = () => {
+    if (!currentFile) return;
+
+    const windDir = currentFile.windDirection
+      ?? currentFile.result?.wind_estimate?.direction
+      ?? analysisStore.parameters.windDirection;
+
+    // Get current filter bounds from viewStore
+    const { timeStart, timeEnd, latMin, latMax, lonMin, lonMax } = viewStore.filterBounds;
+
+    const filters: FilterParameters = {
+      timeStart,
+      timeEnd,
+      latMin,
+      latMax,
+      lonMin,
+      lonMax,
+    };
+
+    handleAnalyzeTrack(currentFile.file, windDir, filters);
   };
 
   // Utility function to get user-friendly error messages
@@ -327,6 +358,8 @@ export default function AnalyzePage() {
                           fileId={currentFile.id}
                           displayName={currentFile.displayName}
                           windSpeed={currentFile.windSpeed}
+                          onReanalyzeWithFilters={handleReanalyzeWithFilters}
+                          isAnalyzing={analysisStore.isAnalyzing}
                         />
                       </div>
                     )

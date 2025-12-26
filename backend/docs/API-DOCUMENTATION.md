@@ -106,6 +106,12 @@ Analyze a GPX track file to detect sailing segments, estimate wind direction, an
   - `min_distance` (float, optional): Minimum segment distance in meters. Default: 75.0
   - `min_speed` (float, optional): Minimum speed in knots. Default: 8.0
   - `suspicious_angle_threshold` (float, optional): Threshold for filtering suspicious angles in degrees. Default: 25.0
+  - `time_start` (string, optional): ISO 8601 timestamp to filter track start. Only points after this time are analyzed.
+  - `time_end` (string, optional): ISO 8601 timestamp to filter track end. Only points before this time are analyzed.
+  - `lat_min` (float, optional): Minimum latitude for spatial filtering (-90 to 90).
+  - `lat_max` (float, optional): Maximum latitude for spatial filtering (-90 to 90).
+  - `lon_min` (float, optional): Minimum longitude for spatial filtering (-180 to 180).
+  - `lon_max` (float, optional): Maximum longitude for spatial filtering (-180 to 180).
 
 **Example Request**:
 ```bash
