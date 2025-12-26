@@ -198,11 +198,19 @@ Approach: Overlay polar + stats table (simple, compact, interactive)
 
 5. **[DONE] Phase 3.4** - Track comparison ✓
    - Overlay polar plot (2-4 tracks, distinct colors)
-   - Comparison stats table
+   - Comparison stats table (Best/Rep angle @ speed, VMG, Wind, Seg)
    - Hover interaction across polar + table
+   - Editable track names (click pencil in any view)
+   - Editable wind speed (click to override historical lookup)
    - Old Simple* components removed
+   - prebuild script to prevent Next.js cache corruption
 
-6. **[NEXT] Phase 4** - Time/spatial filters for longer tracks
+6. **[IN PROGRESS] Settings per-track** - Fix UI freeze on re-analyze
+   - Settings adjustment (min_distance, etc.) currently freezes UI
+   - Settings should apply to selected track only (not all tracks)
+   - Only show settings panel when single track is focused
+
+7. **[NEXT] Phase 4** - Time/spatial filters for longer tracks
    - Time range slider (filter points before segment detection)
    - Spatial rectangle selection on map
    - Requires re-analyze (backend call)
