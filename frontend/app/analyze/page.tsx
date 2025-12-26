@@ -264,7 +264,7 @@ export default function AnalyzePage() {
                   handleAnalyzeTrack(currentFile.file, windDir);
                 }
               }}
-              disabled={analysisStore.isAnalyzing || !connectionStatus.isConnected}
+              disabled={analysisStore.isAnalyzing || !connectionStatus.isConnected || !currentFile}
               isAnalyzing={analysisStore.isAnalyzing}
             />
           </div>
