@@ -22,8 +22,12 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
 
   const hoveredSegmentId = useViewStore((state) => state.hoveredSegmentId);
   const excludedSegmentIds = useViewStore((state) => state.excludedSegmentIds);
+  const filterBounds = useViewStore((state) => state.filterBounds);
   const setHoveredSegment = useViewStore((state) => state.setHoveredSegment);
   const toggleSegmentExclusion = useViewStore((state) => state.toggleSegmentExclusion);
+
+  // Check if time filter is active
+  const hasTimeFilter = filterBounds.timeStart !== null || filterBounds.timeEnd !== null;
 
   // Get segment color based on tack
   const getSegmentColor = useCallback((segment: TrackSegment, isHovered: boolean, isExcluded: boolean) => {
@@ -146,14 +150,66 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
     arrowHead.addTo(map);
     layersRef.current.push(arrowHead);
 
-    // Draw full track in light gray
+    // Draw full track - dimmed if time filter is active
     const trackLayer = L.polyline(trackCoords, {
-      color: '#D1D5DB',
+      color: hasTimeFilter ? '#E5E7EB' : '#D1D5DB',
       weight: 2,
-      opacity: 0.6,
+      opacity: hasTimeFilter ? 0.3 : 0.6,
     });
     trackLayer.addTo(map);
     layersRef.current.push(trackLayer);
+
+    // Draw time-filtered portion highlighted (if time filter active)
+    if (hasTimeFilter) {
+      const filterStart = filterBounds.timeStart ? new Date(filterBounds.timeStart) : null;
+      const filterEnd = filterBounds.timeEnd ? new Date(filterBounds.timeEnd) : null;
+
+      // Find indices of points within time range
+      const filteredIndices: number[] = [];
+      gpsData.forEach((point, idx) => {
+        if (!point.time) return;
+        const pointTime = new Date(point.time);
+        const afterStart = !filterStart || pointTime >= filterStart;
+        const beforeEnd = !filterEnd || pointTime <= filterEnd;
+        if (afterStart && beforeEnd) {
+          filteredIndices.push(idx);
+        }
+      });
+
+      // Draw highlighted track for filtered portion
+      if (filteredIndices.length > 1) {
+        // Get contiguous ranges
+        const filteredCoords = filteredIndices.map((idx) => trackCoords[idx]);
+        const highlightLayer = L.polyline(filteredCoords, {
+          color: '#F59E0B', // Amber/orange for selected range
+          weight: 3,
+          opacity: 0.8,
+        });
+        highlightLayer.addTo(map);
+        layersRef.current.push(highlightLayer);
+
+        // Add markers at filter boundaries
+        if (filteredCoords.length > 0) {
+          const filterStartIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="width: 10px; height: 10px; background: #F59E0B; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [10, 10],
+            iconAnchor: [5, 5],
+          });
+          const filterEndIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="width: 10px; height: 10px; background: #F59E0B; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [10, 10],
+            iconAnchor: [5, 5],
+          });
+          const filterStartMarker = L.marker(filteredCoords[0], { icon: filterStartIcon });
+          const filterEndMarker = L.marker(filteredCoords[filteredCoords.length - 1], { icon: filterEndIcon });
+          filterStartMarker.addTo(map);
+          filterEndMarker.addTo(map);
+          layersRef.current.push(filterStartMarker, filterEndMarker);
+        }
+      }
+    }
 
     // Draw upwind segments with interactivity
     const upwindSegments = segments.filter((s) => s.direction === 'Upwind');
@@ -214,7 +270,7 @@ export function TrackMap({ gpsData, segments, windDirection = 0, className = '' 
       map.fitBounds(bounds, { padding: [30, 30] });
       boundsSetRef.current = true;
     }
-  }, [gpsData, segments, hoveredSegmentId, excludedSegmentIds, getSegmentColor, setHoveredSegment, toggleSegmentExclusion, windDirection]);
+  }, [gpsData, segments, hoveredSegmentId, excludedSegmentIds, getSegmentColor, setHoveredSegment, toggleSegmentExclusion, windDirection, filterBounds, hasTimeFilter]);
 
   // Initialize map
   useEffect(() => {

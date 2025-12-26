@@ -291,15 +291,6 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* Filter Controls */}
-          {onReanalyzeWithFilters && (
-            <FilterControls
-              gpsData={gpsData}
-              onApplyFilters={onReanalyzeWithFilters}
-              disabled={isAnalyzing}
-            />
-          )}
-
           {onOpenSettings && (
             <button
               onClick={onOpenSettings}
@@ -314,9 +305,18 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
 
       {/* Main content - Map and Right Panel side by side */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0">
-        {/* Left: Map */}
-        <Card className="overflow-hidden">
-          <TrackMap gpsData={gpsData} segments={adjustedSegments} windDirection={effectiveWind} className="h-full" />
+        {/* Left: Map with time filter */}
+        <Card className="overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0">
+            <TrackMap gpsData={gpsData} segments={adjustedSegments} windDirection={effectiveWind} className="h-full" />
+          </div>
+          {onReanalyzeWithFilters && (
+            <FilterControls
+              gpsData={gpsData}
+              onApplyFilters={onReanalyzeWithFilters}
+              disabled={isAnalyzing}
+            />
+          )}
         </Card>
 
         {/* Right: Polar + Segments */}

@@ -1,16 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { useViewStore, FilterBounds } from '@/stores/viewStore';
+import { useViewStore } from '@/stores/viewStore';
 import { GPSPoint } from '@/lib/gpx-parser';
-import { Clock, MapPin, RotateCcw, Filter } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Clock, RotateCcw } from 'lucide-react';
 
 interface FilterControlsProps {
   gpsData: GPSPoint[];
@@ -38,7 +33,6 @@ function formatDuration(startMs: number, endMs: number): string {
 }
 
 export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterControlsProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const filterBounds = useViewStore((state) => state.filterBounds);
   const setFilterBounds = useViewStore((state) => state.setFilterBounds);
   const clearFilterBounds = useViewStore((state) => state.clearFilterBounds);
@@ -113,100 +107,71 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
     clearFilterBounds();
   };
 
-  const hasActiveFilters =
-    filterBounds.timeStart !== null ||
-    filterBounds.timeEnd !== null ||
-    filterBounds.latMin !== null;
-
-  const isTimeFiltered =
-    sliderValues[0] > 0.5 || sliderValues[1] < 99.5; // Allow small tolerance
+  const isTimeFiltered = sliderValues[0] > 0.5 || sliderValues[1] < 99.5;
 
   if (!timeBounds) {
-    return null; // No time data available
+    return null;
   }
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`gap-1.5 ${hasActiveFilters ? 'text-blue-600' : 'text-slate-500'}`}
-        >
-          <Filter className="h-4 w-4" />
-          <span className="text-xs">
-            {hasActiveFilters ? 'Filters active' : 'Filters'}
-          </span>
-        </Button>
-      </CollapsibleTrigger>
-
-      <CollapsibleContent className="mt-2">
-        <div className="bg-slate-50 rounded-lg p-3 space-y-3">
-          {/* Time Range Filter */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Time Range</span>
-              </div>
-              {isTimeFiltered && (
-                <button
-                  onClick={handleReset}
-                  className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Reset
-                </button>
-              )}
-            </div>
-
-            <Slider
-              value={sliderValues}
-              onValueChange={handleSliderChange}
-              min={0}
-              max={100}
-              step={0.5}
-              disabled={disabled}
-              className="py-2"
-            />
-
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>{displayTimes ? formatTime(displayTimes.startTime) : '--:--'}</span>
-              <span className="text-slate-400">
-                {displayTimes ? formatDuration(displayTimes.startTime.getTime(), displayTimes.endTime.getTime()) : '--'}
-              </span>
-              <span>{displayTimes ? formatTime(displayTimes.endTime) : '--:--'}</span>
-            </div>
-
-            <div className="text-xs text-slate-400 text-center">
-              Full range: {formatTime(timeBounds.startTime)} - {formatTime(timeBounds.endTime)}
-            </div>
-          </div>
-
-          {/* Spatial Filter (placeholder for Phase 4 Part 2) */}
-          <div className="space-y-2 opacity-50">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <MapPin className="h-3.5 w-3.5" />
-              <span>Spatial Filter (coming soon)</span>
-            </div>
-            <p className="text-xs text-slate-400">
-              Draw a rectangle on the map to filter by location
-            </p>
-          </div>
-
-          {/* Apply Button */}
-          {hasActiveFilters && (
-            <Button
-              onClick={onApplyFilters}
-              disabled={disabled}
-              size="sm"
-              className="w-full"
-            >
-              Re-analyze with Filters
-            </Button>
-          )}
+    <div className="bg-slate-50 border-t border-slate-200 px-3 py-2">
+      <div className="flex items-center gap-3">
+        {/* Time icon and label */}
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 flex-shrink-0">
+          <Clock className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Time:</span>
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+
+        {/* Start time */}
+        <span className="text-xs font-medium text-slate-600 w-12 text-right flex-shrink-0">
+          {displayTimes ? formatTime(displayTimes.startTime) : '--:--'}
+        </span>
+
+        {/* Slider */}
+        <div className="flex-1 min-w-[100px]">
+          <Slider
+            value={sliderValues}
+            onValueChange={handleSliderChange}
+            min={0}
+            max={100}
+            step={0.5}
+            disabled={disabled}
+          />
+        </div>
+
+        {/* End time */}
+        <span className="text-xs font-medium text-slate-600 w-12 flex-shrink-0">
+          {displayTimes ? formatTime(displayTimes.endTime) : '--:--'}
+        </span>
+
+        {/* Duration */}
+        <span className="text-xs text-slate-400 w-10 flex-shrink-0 hidden sm:block">
+          {displayTimes ? formatDuration(displayTimes.startTime.getTime(), displayTimes.endTime.getTime()) : '--'}
+        </span>
+
+        {/* Reset button */}
+        {isTimeFiltered && (
+          <button
+            onClick={handleReset}
+            className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors flex-shrink-0"
+            title="Reset to full range"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        )}
+
+        {/* Apply button */}
+        {isTimeFiltered && (
+          <Button
+            onClick={onApplyFilters}
+            disabled={disabled}
+            size="sm"
+            className="h-7 px-2 text-xs flex-shrink-0"
+          >
+            Apply
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
