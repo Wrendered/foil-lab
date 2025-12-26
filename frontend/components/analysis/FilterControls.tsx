@@ -144,27 +144,30 @@ export function FilterControls({ gpsData, onApplyFilters, disabled }: FilterCont
           {displayTimes ? formatTime(displayTimes.endTime) : '--:--'}
         </span>
 
-        {/* Reanalyze button - always visible */}
+        {/* Reanalyze button - fixed width to prevent layout shift */}
         <Button
           onClick={onApplyFilters}
           disabled={disabled || !isTimeFiltered}
           size="sm"
           variant={isTimeFiltered ? "default" : "outline"}
-          className="h-6 px-2 text-xs flex-shrink-0"
+          className="h-6 w-20 text-xs flex-shrink-0"
         >
           {isTimeFiltered ? 'Reanalyze' : 'Full'}
         </Button>
 
-        {/* Reset button - only when filtered */}
-        {isTimeFiltered && (
-          <button
-            onClick={handleReset}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors flex-shrink-0"
-            title="Reset to full track"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
-        )}
+        {/* Reset button - always present but invisible when not filtered to prevent layout shift */}
+        <button
+          onClick={handleReset}
+          disabled={!isTimeFiltered}
+          className={`p-1 rounded transition-colors flex-shrink-0 ${
+            isTimeFiltered
+              ? 'text-slate-400 hover:text-slate-600'
+              : 'text-transparent pointer-events-none'
+          }`}
+          title="Reset to full track"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );
