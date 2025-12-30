@@ -229,47 +229,23 @@ export default function AnalyzePage() {
   return (
     <ErrorBoundary>
       <div className="container mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-2xl font-bold">Track Analysis</h1>
-              <p className="text-gray-600 text-sm">
-                Upload GPX files to analyze your sailing performance
-              </p>
-            </div>
-
-            {/* Connection Status - only show when NOT connected */}
+        {/* Status indicators - only show when there's an issue */}
+        {(!connectionStatus.isConnected || configLoading) && (
+          <div className="mb-4 flex items-center gap-3">
             {!connectionStatus.isConnected && (
-              <Card className="p-2 px-3">
-                <div className="flex items-center gap-2 text-sm">
-                  {connectionStatus.isChecking ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                      <span className="text-gray-600">Connecting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="h-4 w-4 text-red-600" />
-                      <span className="text-red-600">Server unavailable</span>
-                    </>
-                  )}
-                </div>
-              </Card>
+              <div className="flex items-center gap-2 text-sm text-red-600">
+                <WifiOff className="h-4 w-4" />
+                <span>{connectionStatus.isChecking ? 'Connecting...' : 'Server unavailable'}</span>
+              </div>
+            )}
+            {configLoading && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading config...</span>
+              </div>
             )}
           </div>
-
-          {/* Configuration Status - only show when loading */}
-          {configLoading && (
-            <Card className="mb-4 p-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                <span>Loading configuration...</span>
-              </div>
-            </Card>
-          )}
-
-        </div>
+        )}
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
@@ -371,19 +347,25 @@ export default function AnalyzePage() {
           </div>
         </div>
 
-        {/* Feedback footer - compact */}
-        <div className="mt-8 pt-6 border-t text-center text-sm text-gray-500">
-          <p>
-            Found a bug or have feedback?{' '}
-            <a
-              href="https://www.instagram.com/heart_wrench/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              Message @heart_wrench on Instagram
-            </a>
-          </p>
+        {/* Footer */}
+        <div className="mt-12 pt-6 border-t">
+          <div className="max-w-2xl mx-auto text-center">
+            <p className="text-gray-600 text-sm leading-relaxed">
+              A side project for analyzing upwind performance from GPS tracks.
+              Built out of curiosity and a love for the sport.
+            </p>
+            <p className="mt-3 text-sm">
+              <span className="text-gray-500">Found a bug or have ideas?</span>{' '}
+              <a
+                href="https://www.instagram.com/heart_wrench/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                @heart_wrench
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </ErrorBoundary>
