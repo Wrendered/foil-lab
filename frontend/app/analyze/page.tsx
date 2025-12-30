@@ -243,10 +243,11 @@ export default function AnalyzePage() {
               </CollapsibleTrigger>
               <CollapsibleContent className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg p-4 max-w-sm">
                 <ul className="text-xs text-gray-600 space-y-1.5">
+                  <li><span className="font-medium text-gray-800">Auto-detects wind</span> from historical data based on your GPX time and location, then refines it from your tacking patterns</li>
+                  <li><span className="font-medium text-gray-800">Adjust wind manually</span> if the estimate looks off</li>
                   <li><span className="font-medium text-gray-800">Upload multiple tracks</span> to compare sessions or gear side-by-side</li>
                   <li><span className="font-medium text-gray-800">Trim by time</span> to focus on specific parts of your session</li>
                   <li><span className="font-medium text-gray-800">Toggle segments</span> on/off to refine your stats</li>
-                  <li><span className="font-medium text-gray-800">Adjust wind</span> direction if the estimate looks off</li>
                   <li>Works for upwind and downwind legs</li>
                 </ul>
               </CollapsibleContent>
