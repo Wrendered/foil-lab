@@ -248,7 +248,6 @@ export default function AnalyzePage() {
                   <li><span className="font-medium text-gray-800">Upload multiple tracks</span> to compare sessions or gear side-by-side</li>
                   <li><span className="font-medium text-gray-800">Trim by time</span> to focus on specific parts of your session</li>
                   <li><span className="font-medium text-gray-800">Toggle segments</span> on/off to refine your stats</li>
-                  <li>Works for upwind and downwind legs</li>
                 </ul>
               </CollapsibleContent>
             </Collapsible>
