@@ -376,9 +376,8 @@ export default function AnalyzePage() {
         <div className="mt-12 pt-6 border-t">
           <div className="max-w-2xl mx-auto text-center">
             <p className="text-gray-600 text-sm leading-relaxed">
-              I built this because I wanted data instead of subjectivity when comparing gear and technique.
-              It tracks downwind too, though I haven't tested that as much.
-              It's a side project, expect rough edges, but sharing in case it's useful to others who obsess over this stuff.
+              Built in my spare time because I wanted to throw a little more data into comparisons of gear and technique.
+              It's a side project, so expect rough edges, but sharing in case it's useful to others who obsess over this stuff.
             </p>
             <p className="mt-3 text-sm">
               <span className="text-gray-500">Questions, bugs, or ideas?</span>{' '}
