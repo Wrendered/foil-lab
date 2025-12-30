@@ -15,7 +15,8 @@ import { ClientOnly } from '@/components/ClientOnly';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useConfig, useTrackAnalysis, useConnectionStatus } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
-import { Loader2, WifiOff, AlertCircle } from 'lucide-react';
+import { Loader2, WifiOff, AlertCircle, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { isNetworkError, isServerError, isAPIError, FilterParameters } from '@/lib/api-client';
 import { DEFAULT_PARAMETERS } from '@/lib/defaults';
 
@@ -230,45 +231,45 @@ export default function AnalyzePage() {
     <ErrorBoundary>
       <div className="container mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-2xl font-bold">Track Analysis</h1>
-              <p className="text-gray-600 text-sm">
-                Upload GPX files to analyze your sailing performance
-              </p>
-            </div>
-
-            {/* Connection Status - only show when NOT connected */}
-            {!connectionStatus.isConnected && (
-              <Card className="p-2 px-3">
-                <div className="flex items-center gap-2 text-sm">
-                  {connectionStatus.isChecking ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                      <span className="text-gray-600">Connecting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="h-4 w-4 text-red-600" />
-                      <span className="text-red-600">Server unavailable</span>
-                    </>
-                  )}
-                </div>
-              </Card>
-            )}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <p className="text-gray-600 text-sm">
+              Compare upwind performance across sessions and gear. Drop a GPX to get started.
+            </p>
+            <Collapsible className="relative">
+              <CollapsibleTrigger className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
+                What can I do?
+                <ChevronDown className="h-3 w-3" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="absolute z-50 mt-2 bg-white border rounded-lg shadow-lg p-4 max-w-sm">
+                <ul className="text-xs text-gray-600 space-y-1.5">
+                  <li><span className="font-medium text-gray-800">Auto-detects wind</span> from historical data based on your GPX time and location, then refines it from your tacking patterns</li>
+                  <li><span className="font-medium text-gray-800">Adjust wind manually</span> if the estimate looks off</li>
+                  <li><span className="font-medium text-gray-800">Upload multiple tracks</span> to compare sessions or gear side-by-side</li>
+                  <li><span className="font-medium text-gray-800">Trim by time</span> to focus on specific parts of your session</li>
+                  <li><span className="font-medium text-gray-800">Toggle segments</span> on/off to refine your stats</li>
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
-          {/* Configuration Status - only show when loading */}
-          {configLoading && (
-            <Card className="mb-4 p-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                <span>Loading configuration...</span>
-              </div>
-            </Card>
+          {/* Status indicators - only show when there's an issue */}
+          {(!connectionStatus.isConnected || configLoading) && (
+            <div className="flex items-center gap-3">
+              {!connectionStatus.isConnected && (
+                <div className="flex items-center gap-2 text-sm text-red-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span>{connectionStatus.isChecking ? 'Connecting...' : 'Server unavailable'}</span>
+                </div>
+              )}
+              {configLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading...</span>
+                </div>
+              )}
+            </div>
           )}
-
         </div>
 
         {/* Main Content Grid */}
@@ -371,19 +372,25 @@ export default function AnalyzePage() {
           </div>
         </div>
 
-        {/* Feedback footer - compact */}
-        <div className="mt-8 pt-6 border-t text-center text-sm text-gray-500">
-          <p>
-            Found a bug or have feedback?{' '}
-            <a
-              href="https://www.instagram.com/heart_wrench/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              Message @heart_wrench on Instagram
-            </a>
-          </p>
+        {/* Footer */}
+        <div className="mt-12 pt-6 border-t">
+          <div className="max-w-2xl mx-auto text-center">
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Built in my spare time because I wanted to throw a little more data into comparisons of gear and technique.
+              It's a side project, so expect rough edges, but sharing in case it's useful to others who obsess over this stuff.
+            </p>
+            <p className="mt-3 text-sm">
+              <span className="text-gray-500">Questions, bugs, or ideas?</span>{' '}
+              <a
+                href="https://www.instagram.com/heart_wrench/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                @heart_wrench
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </ErrorBoundary>

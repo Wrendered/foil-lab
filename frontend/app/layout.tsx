@@ -31,7 +31,7 @@ export default function RootLayout({
             <div className="container mx-auto px-4">
               <div className="flex justify-between items-center h-16">
                 <a href="/" className="text-xl font-bold text-gray-900">
-                  🪂 Foil Lab
+                  Foil Lab
                 </a>
                 <div className="text-sm text-gray-500">
                   Beta Version
