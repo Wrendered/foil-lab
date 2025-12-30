@@ -236,7 +236,7 @@ export default function AnalyzePage() {
             <p className="text-gray-600 text-sm">
               Compare upwind performance across sessions and gear. Drop a GPX to get started.
             </p>
-            <Collapsible>
+            <Collapsible className="relative">
               <CollapsibleTrigger className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
                 What can I do?
                 <ChevronDown className="h-3 w-3" />
