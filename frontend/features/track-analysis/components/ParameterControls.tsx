@@ -171,7 +171,7 @@ export function ParameterControls({
             <div className="flex items-center gap-2">
               <Settings2 className="h-5 w-5 text-slate-600" />
               <div className="text-left">
-                <div className="font-semibold text-sm">Detection Settings</div>
+                <div className="font-semibold text-sm">What Counts as a Leg</div>
                 <div className="text-xs text-slate-500">{summaryText}</div>
               </div>
             </div>
@@ -206,9 +206,10 @@ export function ParameterControls({
               </Button>
             </div>
 
-            {/* Help text - emphasize global nature */}
-            <p className="text-xs text-slate-500 text-center">
-              These settings apply to <span className="font-medium">all tracks</span> when re-analyzed.
+            {/* Help text */}
+            <p className="text-xs text-slate-500">
+              Controls how long and consistent a stretch needs to be before it's counted as a leg.
+              Applies to <span className="font-medium">all tracks</span> when re-analyzed.
               {isAnalyzing && (
                 <span className="text-blue-600 block mt-1">Analysis in progress...</span>
               )}

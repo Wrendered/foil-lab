@@ -15,7 +15,8 @@ import { ClientOnly } from '@/components/ClientOnly';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useConfig, useTrackAnalysis, useConnectionStatus } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
-import { Loader2, WifiOff, AlertCircle } from 'lucide-react';
+import { Loader2, WifiOff, AlertCircle, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { isNetworkError, isServerError, isAPIError, FilterParameters } from '@/lib/api-client';
 import { DEFAULT_PARAMETERS } from '@/lib/defaults';
 
@@ -229,23 +230,47 @@ export default function AnalyzePage() {
   return (
     <ErrorBoundary>
       <div className="container mx-auto max-w-6xl px-4 py-8">
-        {/* Status indicators - only show when there's an issue */}
-        {(!connectionStatus.isConnected || configLoading) && (
-          <div className="mb-4 flex items-center gap-3">
-            {!connectionStatus.isConnected && (
-              <div className="flex items-center gap-2 text-sm text-red-600">
-                <WifiOff className="h-4 w-4" />
-                <span>{connectionStatus.isChecking ? 'Connecting...' : 'Server unavailable'}</span>
-              </div>
-            )}
-            {configLoading && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading config...</span>
-              </div>
-            )}
+        {/* Header */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <p className="text-gray-600 text-sm">
+              Compare upwind performance across sessions and gear. Drop a GPX to get started.
+            </p>
+            <Collapsible>
+              <CollapsibleTrigger className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
+                What can I do?
+                <ChevronDown className="h-3 w-3" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg p-4 max-w-sm">
+                <ul className="text-xs text-gray-600 space-y-1.5">
+                  <li><span className="font-medium text-gray-800">Upload multiple tracks</span> to compare sessions or gear side-by-side</li>
+                  <li><span className="font-medium text-gray-800">Trim by time</span> to focus on specific parts of your session</li>
+                  <li><span className="font-medium text-gray-800">Toggle segments</span> on/off to refine your stats</li>
+                  <li><span className="font-medium text-gray-800">Adjust wind</span> direction if the estimate looks off</li>
+                  <li>Works for upwind and downwind legs</li>
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
-        )}
+
+          {/* Status indicators - only show when there's an issue */}
+          {(!connectionStatus.isConnected || configLoading) && (
+            <div className="flex items-center gap-3">
+              {!connectionStatus.isConnected && (
+                <div className="flex items-center gap-2 text-sm text-red-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span>{connectionStatus.isChecking ? 'Connecting...' : 'Server unavailable'}</span>
+                </div>
+              )}
+              {configLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading...</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
@@ -351,11 +376,12 @@ export default function AnalyzePage() {
         <div className="mt-12 pt-6 border-t">
           <div className="max-w-2xl mx-auto text-center">
             <p className="text-gray-600 text-sm leading-relaxed">
-              A side project for analyzing upwind performance from GPS tracks.
-              Built out of curiosity and a love for the sport.
+              I built this because I wanted data instead of subjectivity when comparing gear and technique.
+              It tracks downwind too, though I haven't tested that as much.
+              It's a side project, expect rough edges, but sharing in case it's useful to others who obsess over this stuff.
             </p>
             <p className="mt-3 text-sm">
-              <span className="text-gray-500">Found a bug or have ideas?</span>{' '}
+              <span className="text-gray-500">Questions, bugs, or ideas?</span>{' '}
               <a
                 href="https://www.instagram.com/heart_wrench/"
                 target="_blank"
