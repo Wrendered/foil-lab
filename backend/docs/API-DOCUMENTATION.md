@@ -4,7 +4,7 @@
 
 The Foil Lab API provides REST endpoints for analyzing wingfoil/sailing GPS tracks. Built with FastAPI, it exposes the core analysis algorithms for use by any frontend application.
 
-**Base URL**: `https://strava-tracks-analyzer-production.up.railway.app`
+**Base URL**: `https://foil-lab-production.up.railway.app`
 
 ## Authentication
 

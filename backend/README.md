@@ -4,7 +4,7 @@ FastAPI backend for wingfoil/sailing GPS track analysis. Parses GPX files, detec
 
 **Frontend**: [foil-lab-web](https://github.com/Wrendered/foil-lab-web) (Next.js/React)
 
-**Live API**: https://strava-tracks-analyzer-production.up.railway.app
+**Live API**: https://foil-lab-production.up.railway.app
 
 ## Features
 

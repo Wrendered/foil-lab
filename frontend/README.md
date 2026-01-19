@@ -15,7 +15,7 @@ npm run dev
 cp .env.example .env.local
 # Edit .env.local:
 # NEXT_PUBLIC_API_URL=http://localhost:8000  (local backend)
-# NEXT_PUBLIC_API_URL=https://strava-tracks-analyzer-production.up.railway.app  (production)
+# NEXT_PUBLIC_API_URL=https://foil-lab-production.up.railway.app  (production)
 ```
 
 ## Project Structure

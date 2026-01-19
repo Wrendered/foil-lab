@@ -2,11 +2,17 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone, FileRejection, ErrorCode } from 'react-dropzone';
-import { Upload, AlertCircle } from 'lucide-react';
+import { Upload, AlertCircle, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { TrackFileCard } from '@/components/TrackFileCard';
 import { useUploadStore } from '@/stores/uploadStore';
 import { parseGPXFile } from '@/lib/gpx-parser';
+import { loadSampleGPX } from '@/lib/sample-loader';
 import { cn } from '@/lib/utils';
 
 interface TrackUploaderProps {
@@ -85,6 +91,15 @@ export function TrackUploader({
     uploadStore.removeFile(fileId);
   };
 
+  const handleLoadSample = async () => {
+    try {
+      const sampleFiles = await loadSampleGPX();
+      onDrop(sampleFiles, []);
+    } catch (error) {
+      console.error('Failed to load samples:', error);
+    }
+  };
+
   const pendingFiles = uploadStore.files.filter(f => f.status === 'pending');
   const processingFiles = uploadStore.files.filter(f => f.status === 'uploading' || f.status === 'processing');
   const completedFiles = uploadStore.files.filter(f => f.status === 'completed');
@@ -127,6 +142,33 @@ export function TrackUploader({
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Sample & Help Section */}
+        <div className="flex items-center justify-center gap-3 text-xs">
+          <button
+            type="button"
+            onClick={handleLoadSample}
+            className="text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            Try with sample data
+          </button>
+          <span className="text-gray-300">|</span>
+          <Collapsible className="relative">
+            <CollapsibleTrigger className="text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
+              How to export from Strava
+              <ChevronDown className="h-3 w-3" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="absolute z-50 mt-2 bg-white border rounded-lg shadow-lg p-4 max-w-xs text-left">
+              <ol className="space-y-2 text-xs text-gray-600 list-decimal list-inside">
+                <li>Go to <span className="font-medium">strava.com</span> (website, not app)</li>
+                <li>Open your activity</li>
+                <li>Click the <span className="font-medium">"GPX"</span> button on the map</li>
+                <li>Drop the downloaded file here</li>
+              </ol>
+              <p className="mt-2 text-xs text-gray-400">Free for your own activities. No mobile app export available.</p>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* Rejected files */}
