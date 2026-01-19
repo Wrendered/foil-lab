@@ -241,7 +241,7 @@ export default function AnalyzePage() {
                 What can I do?
                 <ChevronDown className="h-3 w-3" />
               </CollapsibleTrigger>
-              <CollapsibleContent className="absolute z-50 mt-2 bg-white border rounded-lg shadow-lg p-4 max-w-sm">
+              <CollapsibleContent className="absolute z-50 mt-2 bg-white border rounded-lg shadow-lg p-4 w-80">
                 <ul className="text-xs text-gray-600 space-y-1.5">
                   <li><span className="font-medium text-gray-800">Auto-detects wind</span> from historical data based on your GPX time and location, then refines it from your tacking patterns</li>
                   <li><span className="font-medium text-gray-800">Adjust wind manually</span> if the estimate looks off</li>
