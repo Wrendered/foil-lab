@@ -12,6 +12,7 @@ export interface AnalysisParameters {
   minSpeed: number;
   minDistance: number;
   minDuration: number;
+  bestAttemptsFraction: number;  // Top N% tightest angles per tack (0.2-1.0)
 }
 
 interface AnalysisState {

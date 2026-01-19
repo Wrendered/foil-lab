@@ -216,10 +216,20 @@ export default function AnalyzePage() {
 
   // Handle track selection - reset view state when switching tracks
   const handleTrackSelect = (fileId: string) => {
-    // Reset per-track view state (wind override, segment exclusions, hover)
+    // Reset per-track view state (segment exclusions, hover, filters)
     viewStore.reset();
     uploadStore.setCurrentFileId(fileId);
     setIsCompareMode(false);
+
+    // Restore persisted wind direction for this track (if user had adjusted it)
+    const selectedFile = uploadStore.files.find(f => f.id === fileId);
+    if (selectedFile?.windDirection !== undefined) {
+      const calculatedWind = selectedFile.result?.wind_estimate?.direction;
+      // Only set adjusted wind if it differs from calculated (i.e., user had made an adjustment)
+      if (calculatedWind !== undefined && selectedFile.windDirection !== Math.round(calculatedWind)) {
+        viewStore.setWindDirection(selectedFile.windDirection);
+      }
+    }
   };
   
   const handleCompareMode = () => {

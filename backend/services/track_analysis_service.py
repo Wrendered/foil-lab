@@ -17,7 +17,7 @@ from core.filtering import apply_filters
 from core.segments import find_consistent_angle_stretches
 from core.calculations import analyze_wind_angles
 from core.wind.factory import estimate_wind_direction_factory, WindEstimationParams
-from core.metrics_advanced import calculate_vmg_upwind
+from core.metrics_advanced import calculate_vmg_upwind, calculate_vmg_best_attempts
 from core.models.gear_item import GearItem
 from config.settings import DEFAULT_MIN_DISTANCE, DEFAULT_MIN_DURATION, DEFAULT_MIN_SPEED
 
@@ -26,15 +26,16 @@ logger = logging.getLogger(__name__)
 
 class TrackAnalysisResult:
     """Container for track analysis results."""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  track_data: pd.DataFrame,
-                 segments: pd.DataFrame, 
+                 segments: pd.DataFrame,
                  metadata: Dict[str, Any],
                  initial_wind: float,
                  refined_wind: float,
                  wind_confidence: str,
-                 filename: str):
+                 filename: str,
+                 best_attempts_fraction: float = 0.4):
         self.track_data = track_data
         self.segments = segments
         self.metadata = metadata
@@ -42,7 +43,8 @@ class TrackAnalysisResult:
         self.refined_wind = refined_wind
         self.wind_confidence = wind_confidence
         self.filename = filename
-        
+        self.best_attempts_fraction = best_attempts_fraction
+
         # Calculate derived metrics
         self._calculate_summary_metrics()
     
@@ -52,22 +54,43 @@ class TrackAnalysisResult:
             self.upwind_segments = pd.DataFrame()
             self.downwind_segments = pd.DataFrame()
             self.vmg_upwind = None
+            self.best_vmg = None
+            self.session_vmg = None
             self.best_port_angle = None
             self.best_starboard_angle = None
             self.total_distance = 0
             self.avg_speed = 0
             self.max_speed = 0
             return
-        
+
         # Split segments using the same method as main page
         self.upwind_segments = self.segments[self.segments.get('direction', '').str.lower() == 'upwind'] if 'direction' in self.segments.columns else pd.DataFrame()
         self.downwind_segments = self.segments[self.segments.get('direction', '').str.lower() == 'downwind'] if 'direction' in self.segments.columns else pd.DataFrame()
-        
-        # Calculate VMG with segment IDs
-        self.vmg_upwind = None
-        self.vmg_segment_ids = []
+
+        # Calculate both VMG values:
+        # - session_vmg: VMG from ALL upwind segments (overall session performance)
+        # - best_vmg: VMG from only the best attempts (top N% tightest angles per tack)
+        self.session_vmg = None
+        self.session_vmg_segment_ids = []
+        self.best_vmg = None
+        self.best_vmg_segment_ids = []
+
         if not self.upwind_segments.empty:
-            self.vmg_upwind, self.vmg_segment_ids = calculate_vmg_upwind(self.upwind_segments, return_segment_ids=True)
+            # Session VMG - all upwind segments
+            self.session_vmg, self.session_vmg_segment_ids = calculate_vmg_upwind(
+                self.upwind_segments, return_segment_ids=True
+            )
+
+            # Best VMG - only top N% tightest angles per tack
+            self.best_vmg, self.best_vmg_segment_ids = calculate_vmg_best_attempts(
+                self.upwind_segments,
+                best_attempts_fraction=self.best_attempts_fraction,
+                return_segment_ids=True
+            )
+
+        # Legacy: keep vmg_upwind pointing to session_vmg for backwards compatibility
+        self.vmg_upwind = self.session_vmg
+        self.vmg_segment_ids = self.session_vmg_segment_ids
         
         # Get best angles
         self.best_port_angle = None
@@ -105,6 +128,7 @@ def analyze_track_data(track_data: pd.DataFrame,
                       min_duration: float = DEFAULT_MIN_DURATION,
                       min_speed: float = DEFAULT_MIN_SPEED,
                       suspicious_angle_threshold: float = 20,
+                      best_attempts_fraction: float = 0.4,
                       time_start: Optional[datetime] = None,
                       time_end: Optional[datetime] = None,
                       lat_bounds: Optional[Tuple[float, float]] = None,
@@ -125,6 +149,7 @@ def analyze_track_data(track_data: pd.DataFrame,
         min_duration: Minimum segment duration in seconds
         min_speed: Minimum speed filter in knots
         suspicious_angle_threshold: Threshold for wind estimation
+        best_attempts_fraction: Fraction of tightest angles to use (0.2-1.0)
         time_start: Optional start of time range filter (keep segments after this)
         time_end: Optional end of time range filter (keep segments before this)
         lat_bounds: Optional (min_lat, max_lat) for spatial filtering
@@ -177,13 +202,15 @@ def analyze_track_data(track_data: pd.DataFrame,
                 initial_wind=initial_wind_direction,
                 refined_wind=initial_wind_direction,
                 wind_confidence='None',
-                filename=filename
+                filename=filename,
+                best_attempts_fraction=best_attempts_fraction
             )
         
         # Step 4: Estimate wind direction using factory pattern
         wind_params = WindEstimationParams(
             suspicious_angle_threshold=suspicious_angle_threshold,
-            min_segment_distance=min_distance
+            min_segment_distance=min_distance,
+            best_attempts_fraction=best_attempts_fraction
         )
         wind_estimate = estimate_wind_direction_factory(
             segments,
@@ -203,7 +230,7 @@ def analyze_track_data(track_data: pd.DataFrame,
             segments['sailing_type'] = segments['direction'] + ' ' + segments['tack']
         
         logger.info(f"Successfully analyzed {filename}: {len(segments)} segments")
-        
+
         return TrackAnalysisResult(
             track_data=track_data,
             segments=segments,
@@ -211,7 +238,8 @@ def analyze_track_data(track_data: pd.DataFrame,
             initial_wind=initial_wind_direction,
             refined_wind=refined_wind,
             wind_confidence=wind_estimate.confidence,
-            filename=filename
+            filename=filename,
+            best_attempts_fraction=best_attempts_fraction
         )
         
     except Exception as e:

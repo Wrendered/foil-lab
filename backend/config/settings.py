@@ -48,6 +48,7 @@ WIND_ESTIMATION_METHODS = ["weighted", "iterative", "basic"]
 DEFAULT_WIND_ESTIMATION_METHOD = "weighted"
 DEFAULT_MAX_ITERATIONS = 5  # Maximum iterations for iterative wind estimation
 DEFAULT_CONVERGENCE_THRESHOLD = 2.0  # Degrees - when to stop iterative estimation
+DEFAULT_BEST_ATTEMPTS_FRACTION = 0.4  # Use top 40% of tightest angles per tack for wind estimation
 
 # UI configuration
 UI_DEFAULT_PORT_COLOR = "#FF5757"  # Red for port tack
@@ -131,7 +132,8 @@ class WindConfig:
     MAX_ITERATIONS = DEFAULT_MAX_ITERATIONS
     CONVERGENCE_THRESHOLD = DEFAULT_CONVERGENCE_THRESHOLD
     VMG_ANGLE_RANGE = DEFAULT_VMG_ANGLE_RANGE  # From core.constants
-    
+    BEST_ATTEMPTS_FRACTION = DEFAULT_BEST_ATTEMPTS_FRACTION  # Top % of tightest angles
+
     @classmethod
     def as_dict(cls) -> Dict[str, Any]:
         """Get wind configuration as a dictionary."""
@@ -141,6 +143,7 @@ class WindConfig:
             'max_iterations': cls.MAX_ITERATIONS,
             'convergence_threshold': cls.CONVERGENCE_THRESHOLD,
             'vmg_angle_range': cls.VMG_ANGLE_RANGE,
+            'best_attempts_fraction': cls.BEST_ATTEMPTS_FRACTION,
         }
 
 

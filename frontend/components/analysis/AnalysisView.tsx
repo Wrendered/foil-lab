@@ -16,6 +16,7 @@ import { AnalysisResult, TrackSegment } from '@/lib/api-client';
 import { GPSPoint } from '@/lib/gpx-parser';
 import { useViewStore } from '@/stores/viewStore';
 import { useUploadStore } from '@/stores/uploadStore';
+import { useAnalysisStore } from '@/stores/analysisStore';
 import { Settings, Minus, Plus, RotateCcw, Pencil } from 'lucide-react';
 
 interface AnalysisViewProps {
@@ -54,6 +55,14 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
   const setWindDirection = useViewStore((state) => state.setWindDirection);
   const setDisplayName = useUploadStore((state) => state.setDisplayName);
   const setFileWindData = useUploadStore((state) => state.setFileWindData);
+
+  // Best attempts fraction from analysis store (for polar plot visualization)
+  const bestAttemptsFraction = useAnalysisStore((state) => state.parameters.bestAttemptsFraction);
+  const updateParameters = useAnalysisStore((state) => state.updateParameters);
+
+  const handleBestAttemptsFractionChange = (fraction: number) => {
+    updateParameters({ bestAttemptsFraction: fraction });
+  };
 
   // Editable name state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -106,6 +115,9 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
     return recalculateSegmentAngles(result.segments, adjustedWindDirection);
   }, [result.segments, adjustedWindDirection]);
 
+  // Best attempts fraction is now managed via the analysis store (see line ~60)
+  // This allows the polar plot controls and stats bar to stay in sync
+
   // Calculate stats from active segments only (using adjusted segments)
   const stats = useMemo(() => {
     const upwindSegments = adjustedSegments.filter((s) => s.direction === 'Upwind');
@@ -116,9 +128,11 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
         avgSpeed: 0,
         bestVMG: 0,
         bestVMGAngle: 0,
-        repVMG: 0,
-        repAngle: 0,
-        repCount: 0,
+        sessionVMG: 0,
+        sessionAngle: 0,
+        bestAttemptsVMG: 0,
+        bestAttemptsAngle: 0,
+        bestAttemptsCount: 0,
         activeCount: 0,
         totalCount: upwindSegments.length,
         totalDistance: 0,
@@ -140,40 +154,68 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
 
     const bestVMGSegment = segmentsWithVMG.reduce((best, s) => (s.vmg > best.vmg ? s : best), segmentsWithVMG[0]);
 
-    // Representative metrics: average of top N segments (by VMG), weighted by distance
-    // Use top 3 or all if fewer than 3
-    const topN = Math.min(3, segmentsWithVMG.length);
-    const sortedByVMG = [...segmentsWithVMG].sort((a, b) => b.vmg - a.vmg);
-    const topSegments = sortedByVMG.slice(0, topN);
+    // Session VMG: distance-weighted average of ALL active upwind segments
+    const sessionVMG = totalDistance > 0
+      ? segmentsWithVMG.reduce((sum, s) => sum + s.vmg * s.distance, 0) / totalDistance
+      : segmentsWithVMG.reduce((sum, s) => sum + s.vmg, 0) / segmentsWithVMG.length;
+    const sessionAngle = totalDistance > 0
+      ? segmentsWithVMG.reduce((sum, s) => sum + s.angle_to_wind * s.distance, 0) / totalDistance
+      : segmentsWithVMG.reduce((sum, s) => sum + s.angle_to_wind, 0) / segmentsWithVMG.length;
 
-    const topTotalDistance = topSegments.reduce((sum, s) => sum + s.distance, 0);
+    // Best Attempts VMG: average of top N% tightest angles per tack
+    // Split by tack first
+    const portSegments = segmentsWithVMG.filter((s) => s.tack === 'Port');
+    const starboardSegments = segmentsWithVMG.filter((s) => s.tack === 'Starboard');
 
-    // Guard against division by zero - use simple average as fallback
-    const repVMG = topTotalDistance > 0
-      ? topSegments.reduce((sum, s) => sum + s.vmg * s.distance, 0) / topTotalDistance
-      : topSegments.reduce((sum, s) => sum + s.vmg, 0) / topN;
-    const repAngle = topTotalDistance > 0
-      ? topSegments.reduce((sum, s) => sum + s.angle_to_wind * s.distance, 0) / topTotalDistance
-      : topSegments.reduce((sum, s) => sum + s.angle_to_wind, 0) / topN;
+    // Get best attempts from each tack (top N% tightest angles, min 3)
+    const getBestAttempts = (tack: typeof portSegments) => {
+      if (tack.length === 0) return [];
+      const minCount = 3;
+      const sortedByAngle = [...tack].sort((a, b) => a.angle_to_wind - b.angle_to_wind);
+      const count = Math.max(minCount, Math.floor(tack.length * bestAttemptsFraction));
+      return sortedByAngle.slice(0, Math.min(count, tack.length));
+    };
+
+    const portBest = getBestAttempts(portSegments);
+    const starboardBest = getBestAttempts(starboardSegments);
+    const bestAttempts = [...portBest, ...starboardBest];
+
+    let bestAttemptsVMG = 0;
+    let bestAttemptsAngle = 0;
+    const bestAttemptsCount = bestAttempts.length;
+
+    if (bestAttempts.length > 0) {
+      const bestTotalDist = bestAttempts.reduce((sum, s) => sum + s.distance, 0);
+      bestAttemptsVMG = bestTotalDist > 0
+        ? bestAttempts.reduce((sum, s) => sum + s.vmg * s.distance, 0) / bestTotalDist
+        : bestAttempts.reduce((sum, s) => sum + s.vmg, 0) / bestAttempts.length;
+      bestAttemptsAngle = bestTotalDist > 0
+        ? bestAttempts.reduce((sum, s) => sum + s.angle_to_wind * s.distance, 0) / bestTotalDist
+        : bestAttempts.reduce((sum, s) => sum + s.angle_to_wind, 0) / bestAttempts.length;
+    }
 
     return {
       avgSpeed: weightedSpeed,
       bestVMG: bestVMGSegment.vmg,
       bestVMGAngle: bestVMGSegment.angle_to_wind,
-      repVMG,
-      repAngle,
-      repCount: topN,
+      sessionVMG,
+      sessionAngle,
+      bestAttemptsVMG,
+      bestAttemptsAngle,
+      bestAttemptsCount,
       activeCount: activeSegments.length,
       totalCount: upwindSegments.length,
       totalDistance,
     };
-  }, [adjustedSegments, excludedSegmentIds]);
+  }, [adjustedSegments, excludedSegmentIds, bestAttemptsFraction]);
 
   const isWindAdjusted = adjustedWindDirection !== null;
 
   const handleWindChange = (delta: number) => {
     const newWind = ((effectiveWind + delta) % 360 + 360) % 360;
     setWindDirection(newWind);
+    // Persist to uploadStore so it survives track switching
+    setFileWindData(fileId, newWind, windSpeed);
   };
 
   const handleResetWind = () => {
@@ -323,7 +365,12 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
         <div className="flex flex-col gap-3 min-h-0">
           {/* Polar Plot */}
           <Card className="p-3 flex-shrink-0">
-            <LinkedPolarPlot segments={adjustedSegments} windDirection={effectiveWind} />
+            <LinkedPolarPlot
+              segments={adjustedSegments}
+              windDirection={effectiveWind}
+              bestAttemptsFraction={bestAttemptsFraction}
+              onBestAttemptsFractionChange={handleBestAttemptsFractionChange}
+            />
           </Card>
 
           {/* Segment List */}
@@ -340,31 +387,64 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="cursor-help">
-                  <div className="text-xs text-slate-500 uppercase tracking-wide">Rep. VMG</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Best Attempts VMG</div>
                   <div className="text-lg font-bold text-blue-600">
-                    {stats.repVMG.toFixed(1)} kn
-                    <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.repAngle.toFixed(0)}°</span>
+                    {stats.bestAttemptsVMG.toFixed(1)} kn
+                    <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.bestAttemptsAngle.toFixed(0)}°</span>
                   </div>
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Average of top {stats.repCount} segments by VMG,</p>
-                <p>weighted by distance</p>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium">Best Attempts VMG</p>
+                <p className="text-xs mt-1">
+                  VMG from only your best pointing segments (top {Math.round(bestAttemptsFraction * 100)}%
+                  tightest angles per tack). Represents your peak upwind performance when you were
+                  really trying to sail close to the wind.
+                </p>
+                <p className="text-xs mt-1 text-muted-foreground">
+                  Using {stats.bestAttemptsCount} of {stats.activeCount} upwind segments
+                </p>
               </TooltipContent>
             </Tooltip>
             <div className="h-8 w-px bg-slate-200" />
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="cursor-help">
-                  <div className="text-xs text-slate-500 uppercase tracking-wide">Best VMG</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Session VMG</div>
                   <div className="text-lg font-bold text-purple-600">
+                    {stats.sessionVMG.toFixed(1)} kn
+                    <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.sessionAngle.toFixed(0)}°</span>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium">Session VMG</p>
+                <p className="text-xs mt-1">
+                  VMG averaged across all your upwind segments. Includes cruising, transitions,
+                  and suboptimal angles. Represents your overall upwind performance for the session.
+                </p>
+                <p className="text-xs mt-1 text-muted-foreground">
+                  Averaged from {stats.activeCount} upwind segments
+                </p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="h-8 w-px bg-slate-200" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Peak VMG</div>
+                  <div className="text-lg font-bold text-green-600">
                     {stats.bestVMG.toFixed(1)} kn
                     <span className="text-sm font-normal text-slate-500 ml-1">@ {stats.bestVMGAngle.toFixed(0)}°</span>
                   </div>
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Single best segment VMG</p>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium">Peak VMG</p>
+                <p className="text-xs mt-1">
+                  Your single highest VMG from one segment. This is your absolute best
+                  instantaneous upwind performance during this session.
+                </p>
               </TooltipContent>
             </Tooltip>
             <div className="h-8 w-px bg-slate-200" />
@@ -372,26 +452,52 @@ export function AnalysisView({ result, gpsData, filename, fileId, displayName, w
               <TooltipTrigger asChild>
                 <div className="cursor-help">
                   <div className="text-xs text-slate-500 uppercase tracking-wide">Avg Speed</div>
-                  <div className="text-lg font-bold text-green-600">{stats.avgSpeed.toFixed(1)} kn</div>
+                  <div className="text-lg font-bold text-amber-600">{stats.avgSpeed.toFixed(1)} kn</div>
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Distance-weighted average speed</p>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium">Average Upwind Speed</p>
+                <p className="text-xs mt-1">
+                  Distance-weighted average speed across all upwind segments.
+                  Longer segments contribute more to this average.
+                </p>
               </TooltipContent>
             </Tooltip>
             <div className="h-8 w-px bg-slate-200" />
-            <div>
-              <div className="text-xs text-slate-500 uppercase tracking-wide">Segments</div>
-              <div className="text-lg font-bold text-slate-700">
-                {stats.activeCount}
-                <span className="text-sm font-normal text-slate-500">/{stats.totalCount}</span>
-              </div>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Segments</div>
+                  <div className="text-lg font-bold text-slate-700">
+                    {stats.activeCount}
+                    <span className="text-sm font-normal text-slate-500">/{stats.totalCount}</span>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium">Upwind Segments</p>
+                <p className="text-xs mt-1">
+                  Number of consistent upwind stretches detected. Active segments are those
+                  not manually excluded. Click segments in the list to exclude/include them.
+                </p>
+              </TooltipContent>
+            </Tooltip>
             <div className="h-8 w-px bg-slate-200" />
-            <div>
-              <div className="text-xs text-slate-500 uppercase tracking-wide">Distance</div>
-              <div className="text-lg font-bold text-slate-700">{(stats.totalDistance / 1000).toFixed(2)} km</div>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">Distance</div>
+                  <div className="text-lg font-bold text-slate-700">{(stats.totalDistance / 1000).toFixed(2)} km</div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium">Upwind Distance</p>
+                <p className="text-xs mt-1">
+                  Total distance covered in upwind segments. This is the actual distance
+                  sailed, not straight-line distance made good.
+                </p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </TooltipProvider>
       </Card>

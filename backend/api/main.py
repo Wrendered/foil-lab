@@ -81,11 +81,17 @@ class PerformanceMetrics(BaseModel):
     avg_speed: Optional[float]
     avg_upwind_angle: Optional[float]
     best_upwind_angle: Optional[float]
-    vmg_upwind: Optional[float]
+    vmg_upwind: Optional[float]  # Legacy: alias for session_vmg
     vmg_downwind: Optional[float]
     port_tack_count: int
     starboard_tack_count: int
-    vmg_segment_ids: List[int]
+    vmg_segment_ids: List[int]  # Legacy: alias for session_vmg_segment_ids
+    # New: dual VMG values
+    best_vmg: Optional[float]  # VMG from top N% tightest angles (best pointing attempts)
+    session_vmg: Optional[float]  # VMG from all upwind segments
+    best_vmg_segment_ids: List[int] = []
+    session_vmg_segment_ids: List[int] = []
+    best_attempts_fraction: float = 0.4  # The fraction used for best_vmg calculation
 
 
 class TrackAnalysisResponse(BaseModel):
@@ -129,10 +135,10 @@ async def get_config():
     """Get default configuration values."""
     from config.settings import (
         DEFAULT_MIN_DURATION, DEFAULT_MIN_DISTANCE, DEFAULT_ANGLE_TOLERANCE,
-        DEFAULT_MIN_SPEED
+        DEFAULT_MIN_SPEED, DEFAULT_BEST_ATTEMPTS_FRACTION
     )
     from core.constants import DEFAULT_SUSPICIOUS_ANGLE_THRESHOLD
-    
+
     return {
         "defaults": {
             "wind_direction": 90.0,  # Default wind direction (East)
@@ -140,7 +146,8 @@ async def get_config():
             "min_duration": DEFAULT_MIN_DURATION,
             "min_distance": DEFAULT_MIN_DISTANCE,
             "min_speed": DEFAULT_MIN_SPEED,
-            "suspicious_angle_threshold": DEFAULT_SUSPICIOUS_ANGLE_THRESHOLD
+            "suspicious_angle_threshold": DEFAULT_SUSPICIOUS_ANGLE_THRESHOLD,
+            "best_attempts_fraction": DEFAULT_BEST_ATTEMPTS_FRACTION
         },
         "ranges": {
             "wind_direction": {"min": 0, "max": 359, "step": 1},
@@ -148,7 +155,8 @@ async def get_config():
             "min_duration": {"min": 5, "max": 60, "step": 1},
             "min_distance": {"min": 10, "max": 200, "step": 10},
             "min_speed": {"min": 3, "max": 15, "step": 0.5},
-            "suspicious_angle_threshold": {"min": 15, "max": 35, "step": 1}
+            "suspicious_angle_threshold": {"min": 15, "max": 35, "step": 1},
+            "best_attempts_fraction": {"min": 0.2, "max": 1.0, "step": 0.1}
         }
     }
 
@@ -275,6 +283,7 @@ async def analyze_track(
     min_distance: float = 50.0,
     min_speed: float = 5.0,
     suspicious_angle_threshold: float = 20.0,
+    best_attempts_fraction: float = 0.4,
     time_start: Optional[str] = None,
     time_end: Optional[str] = None,
     lat_min: Optional[float] = None,
@@ -293,6 +302,7 @@ async def analyze_track(
         min_distance: Minimum segment distance in meters
         min_speed: Minimum speed in knots
         suspicious_angle_threshold: Threshold for filtering suspicious angles
+        best_attempts_fraction: Fraction of tightest angles to use for wind estimation (0.2-1.0)
         time_start: Optional ISO format datetime to filter segments (keep after this time)
         time_end: Optional ISO format datetime to filter segments (keep before this time)
         lat_min: Optional minimum latitude for spatial filtering
@@ -371,6 +381,7 @@ async def analyze_track(
             min_distance=min_distance,
             min_speed=min_speed,
             suspicious_angle_threshold=suspicious_angle_threshold,
+            best_attempts_fraction=best_attempts_fraction,
             time_start=parsed_time_start,
             time_end=parsed_time_end,
             lat_bounds=lat_bounds,
@@ -400,11 +411,17 @@ async def analyze_track(
                 avg_speed=result.avg_speed,
                 avg_upwind_angle=result.avg_upwind_angle,
                 best_upwind_angle=min(filter(None, [result.best_port_angle, result.best_starboard_angle]), default=None),
-                vmg_upwind=result.vmg_upwind,
+                vmg_upwind=result.session_vmg,  # Legacy: points to session_vmg
                 vmg_downwind=None,  # Not calculated in current implementation
                 port_tack_count=port_tack_count,
                 starboard_tack_count=starboard_tack_count,
-                vmg_segment_ids=result.vmg_segment_ids
+                vmg_segment_ids=result.session_vmg_segment_ids,  # Legacy: points to session_vmg_segment_ids
+                # New dual VMG values
+                best_vmg=result.best_vmg,
+                session_vmg=result.session_vmg,
+                best_vmg_segment_ids=result.best_vmg_segment_ids,
+                session_vmg_segment_ids=result.session_vmg_segment_ids,
+                best_attempts_fraction=result.best_attempts_fraction
             ),
             track_summary={
                 'total_distance': float(result.total_distance),

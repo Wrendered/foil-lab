@@ -29,7 +29,31 @@ from core.calculations import analyze_wind_angles
 logger = logging.getLogger(__name__)
 
 
-def calculate_wind_score(segments: pd.DataFrame, upwind_weight: float = 0.5, 
+def get_best_pointing_segments(tack_df: pd.DataFrame, min_count: int = 3, max_fraction: float = 0.4) -> pd.DataFrame:
+    """
+    Get the tightest-angle segments from a tack, representing best pointing attempts.
+
+    This filters to only the segments where the sailor was actually trying to point,
+    excluding lazy cruising or maneuvering segments.
+
+    Args:
+        tack_df: DataFrame of segments for one tack
+        min_count: Minimum number of segments to return (default 3)
+        max_fraction: Maximum fraction of segments to return (default 40%)
+
+    Returns:
+        DataFrame with only the best (tightest angle) segments
+    """
+    n = len(tack_df)
+    if n <= min_count:
+        # Few segments - use all of them
+        return tack_df
+    # Use top 40% or at least min_count, whichever is larger
+    best_count = max(min_count, int(n * max_fraction))
+    return tack_df.nsmallest(best_count, 'angle_to_wind')
+
+
+def calculate_wind_score(segments: pd.DataFrame, upwind_weight: float = 0.5,
                         spread_weight: float = 0.3, balance_weight: float = 0.2) -> float:
     """
     Calculate a quality score for wind estimation based on sailing patterns.
@@ -98,7 +122,8 @@ def estimate_wind_direction_iterative(
     initial_wind: float,
     suspicious_angle_threshold: float = DEFAULT_SUSPICIOUS_ANGLE_THRESHOLD,
     min_segment_distance: float = DEFAULT_MIN_SEGMENT_DISTANCE_METERS,
-    max_iterations: int = 5
+    max_iterations: int = 5,
+    best_attempts_fraction: float = 0.4
 ) -> WindEstimate:
     """
     FIXED: Estimate wind direction with proper iterative tack reclassification.
@@ -201,21 +226,27 @@ def estimate_wind_direction_iterative(
             else:
                 break
         
-        # Step 6: Calculate weighted average angles for each tack
-        # Use median for robustness against outliers
-        port_angles = port_tack['angle_to_wind'].values
-        starboard_angles = starboard_tack['angle_to_wind'].values
-        
-        # Use median for robustness
+        # Step 6: Filter to BEST attempts per tack (tightest angles)
+        # This is critical - we only want segments where the sailor was actually
+        # trying to point, not lazy cruising or maneuvering segments
+        port_best = get_best_pointing_segments(port_tack, max_fraction=best_attempts_fraction)
+        starboard_best = get_best_pointing_segments(starboard_tack, max_fraction=best_attempts_fraction)
+
+        logger.info(f"Using best attempts: Port={len(port_best)}/{len(port_tack)}, Starboard={len(starboard_best)}/{len(starboard_tack)}")
+
+        port_angles = port_best['angle_to_wind'].values
+        starboard_angles = starboard_best['angle_to_wind'].values
+
+        # Use median for robustness against remaining outliers
         port_median = np.median(port_angles)
         starboard_median = np.median(starboard_angles)
-        
-        # Also calculate weighted averages for comparison
-        port_weights = port_tack['distance'].values
-        starboard_weights = starboard_tack['distance'].values
-        
-        port_weighted_avg = np.average(port_angles, weights=port_weights)
-        starboard_weighted_avg = np.average(starboard_angles, weights=starboard_weights)
+
+        # Also calculate weighted averages for comparison (with zero-weight guard)
+        port_weights = port_best['distance'].values
+        starboard_weights = starboard_best['distance'].values
+
+        port_weighted_avg = np.average(port_angles, weights=port_weights) if port_weights.sum() > 0 else np.mean(port_angles)
+        starboard_weighted_avg = np.average(starboard_angles, weights=starboard_weights) if starboard_weights.sum() > 0 else np.mean(starboard_angles)
         
         logger.info(f"Port angles: median={port_median:.1f}°, weighted_avg={port_weighted_avg:.1f}°")
         logger.info(f"Starboard angles: median={starboard_median:.1f}°, weighted_avg={starboard_weighted_avg:.1f}°")
@@ -277,16 +308,22 @@ def estimate_wind_direction_iterative(
     # Get final statistics
     final_port = final_upwind[final_upwind['tack'] == 'Port']
     final_starboard = final_upwind[final_upwind['tack'] == 'Starboard']
-    
-    # Calculate final angles
+
+    # Calculate final angles using BEST attempts only (consistent with balancing logic)
     port_angle = None
     starboard_angle = None
-    
+    port_best_count = 0
+    starboard_best_count = 0
+
     if len(final_port) > 0:
-        port_angle = np.median(final_port['angle_to_wind'].values)
-    
+        port_best = get_best_pointing_segments(final_port, max_fraction=best_attempts_fraction)
+        port_angle = np.median(port_best['angle_to_wind'].values)
+        port_best_count = len(port_best)
+
     if len(final_starboard) > 0:
-        starboard_angle = np.median(final_starboard['angle_to_wind'].values)
+        starboard_best = get_best_pointing_segments(final_starboard, max_fraction=best_attempts_fraction)
+        starboard_angle = np.median(starboard_best['angle_to_wind'].values)
+        starboard_best_count = len(starboard_best)
     
     # Determine confidence level
     confidence = "low"
@@ -306,21 +343,21 @@ def estimate_wind_direction_iterative(
     # Log final results
     logger.info(f"\n--- Final Results ---")
     logger.info(f"Converged wind direction: {current_wind:.1f}°")
-    logger.info(f"Final port angle: {port_angle:.1f}° ({len(final_port)} segments)" if port_angle else "No port segments")
-    logger.info(f"Final starboard angle: {starboard_angle:.1f}° ({len(final_starboard)} segments)" if starboard_angle else "No starboard segments")
+    logger.info(f"Final port angle: {port_angle:.1f}° (best {port_best_count}/{len(final_port)} segments)" if port_angle else "No port segments")
+    logger.info(f"Final starboard angle: {starboard_angle:.1f}° (best {starboard_best_count}/{len(final_starboard)} segments)" if starboard_angle else "No starboard segments")
     if port_angle and starboard_angle:
         logger.info(f"Final angle balance: {abs(port_angle - starboard_angle):.1f}° difference")
     logger.info(f"Confidence: {confidence}")
-    
-    # Return result
+
+    # Return result - report the best segment counts used for angle calculation
     return WindEstimate(
         direction=current_wind,
         confidence=confidence,
         user_provided=False,
         port_angle=port_angle,
         starboard_angle=starboard_angle,
-        port_count=len(final_port),
-        starboard_count=len(final_starboard)
+        port_count=port_best_count,
+        starboard_count=starboard_best_count
     )
 
 

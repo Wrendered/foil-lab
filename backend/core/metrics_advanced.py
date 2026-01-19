@@ -191,6 +191,94 @@ def calculate_vmg_upwind(
         return upwind_vmg, vmg_segment_ids
     return upwind_vmg
 
+def calculate_vmg_best_attempts(
+    upwind_segments: pd.DataFrame,
+    best_attempts_fraction: float = 0.4,
+    min_count: int = 3,
+    return_segment_ids: bool = False
+) -> Union[Optional[float], Tuple[Optional[float], List[int]]]:
+    """
+    Calculate VMG from only the best pointing attempts (tightest angles).
+
+    This filters to the top N% tightest angle segments per tack before
+    calculating VMG, representing the sailor's best upwind performance.
+
+    Args:
+        upwind_segments: DataFrame with upwind sailing segments (angle < 90°)
+        best_attempts_fraction: Fraction of segments to use (0.2-1.0, default 40%)
+        min_count: Minimum segments to include per tack (default 3)
+        return_segment_ids: If True, returns tuple (vmg, segment_ids)
+
+    Returns:
+        float: VMG from best attempts, or None if insufficient data
+        OR Tuple[float, List[int]]: (VMG, segment IDs) if return_segment_ids=True
+    """
+    if upwind_segments.empty:
+        return (None, []) if return_segment_ids else None
+
+    try:
+        # Split by tack
+        port_tack = upwind_segments[upwind_segments['tack'] == 'Port']
+        starboard_tack = upwind_segments[upwind_segments['tack'] == 'Starboard']
+
+        best_segments_list = []
+
+        # Get best attempts from each tack
+        for tack_df in [port_tack, starboard_tack]:
+            if len(tack_df) == 0:
+                continue
+
+            n = len(tack_df)
+            if n <= min_count:
+                # Few segments - use all
+                best_segments_list.append(tack_df)
+            else:
+                # Use top fraction or min_count, whichever is larger
+                best_count = max(min_count, int(n * best_attempts_fraction))
+                best = tack_df.nsmallest(best_count, 'angle_to_wind')
+                best_segments_list.append(best)
+
+        if not best_segments_list:
+            return (None, []) if return_segment_ids else None
+
+        # Combine best segments from both tacks
+        best_segments = pd.concat(best_segments_list, ignore_index=False)
+
+        if best_segments.empty:
+            return (None, []) if return_segment_ids else None
+
+        # Calculate VMG for each segment
+        speed_column = 'avg_speed_knots' if 'avg_speed_knots' in best_segments.columns else 'speed'
+        best_segments = best_segments.copy()
+        best_segments['vmg'] = best_segments.apply(
+            lambda row: row[speed_column] * math.cos(math.radians(row['angle_to_wind'])), axis=1
+        )
+
+        # Weight by distance
+        vmg_values = best_segments['vmg'].values
+        distance_weights = best_segments['distance'].values
+
+        total_distance = best_segments['distance'].sum()
+        if total_distance > 0:
+            vmg = np.average(vmg_values, weights=distance_weights)
+
+            # Get segment IDs
+            if 'id' in best_segments.columns:
+                segment_ids = best_segments['id'].tolist()
+            else:
+                segment_ids = best_segments.index.tolist()
+
+            logger.info(f"Calculated best VMG: {vmg:.2f} knots (from {len(best_segments)} best attempts)")
+
+            return (vmg, segment_ids) if return_segment_ids else vmg
+
+        return (None, []) if return_segment_ids else None
+
+    except Exception as e:
+        logger.error(f"Error calculating best VMG: {e}")
+        return (None, []) if return_segment_ids else None
+
+
 def calculate_vmg_downwind(
     downwind_segments: pd.DataFrame,
     angle_range: float = DEFAULT_VMG_ANGLE_RANGE_DEGREES,

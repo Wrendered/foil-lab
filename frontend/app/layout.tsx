@@ -33,8 +33,12 @@ export default function RootLayout({
                 <a href="/" className="text-xl font-bold text-gray-900">
                   Foil Lab
                 </a>
-                <div className="text-sm text-gray-500">
-                  Beta Version
+                <div className="text-sm text-gray-500 flex items-center gap-2">
+                  <span>Beta</span>
+                  <span>·</span>
+                  <a href="https://wrenchat.work" className="hover:text-gray-700 hover:underline">
+                    wrenchat.work
+                  </a>
                 </div>
               </div>
             </div>

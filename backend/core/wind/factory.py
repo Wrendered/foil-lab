@@ -23,13 +23,15 @@ class WindEstimationParams:
     suspicious_angle_threshold: float = DEFAULT_SUSPICIOUS_ANGLE_THRESHOLD
     min_segment_distance: float = DEFAULT_MIN_SEGMENT_DISTANCE_METERS
     max_iterations: int = 5
+    best_attempts_fraction: float = 0.4  # Top % of tightest angles per tack
 
     def to_dict(self) -> Dict[str, float]:
         """Convert to dictionary for function calls."""
         return {
             'suspicious_angle_threshold': self.suspicious_angle_threshold,
             'min_segment_distance': self.min_segment_distance,
-            'max_iterations': self.max_iterations
+            'max_iterations': self.max_iterations,
+            'best_attempts_fraction': self.best_attempts_fraction
         }
 
 
@@ -97,7 +99,8 @@ class IterativeWindEstimator(WindEstimator):
             initial_wind=initial_wind,
             suspicious_angle_threshold=params.suspicious_angle_threshold,
             min_segment_distance=params.min_segment_distance,
-            max_iterations=params.max_iterations
+            max_iterations=params.max_iterations,
+            best_attempts_fraction=params.best_attempts_fraction
         )
 
     @property

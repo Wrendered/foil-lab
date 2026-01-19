@@ -89,11 +89,17 @@ export interface PerformanceMetrics {
   avg_speed: number | null;
   avg_upwind_angle: number | null;
   best_upwind_angle: number | null;
-  vmg_upwind: number | null;
+  vmg_upwind: number | null;  // Legacy: alias for session_vmg
   vmg_downwind: number | null;
   port_tack_count: number;
   starboard_tack_count: number;
-  vmg_segment_ids: number[];
+  vmg_segment_ids: number[];  // Legacy: alias for session_vmg_segment_ids
+  // New dual VMG values
+  best_vmg: number | null;  // VMG from top N% tightest angles (best pointing attempts)
+  session_vmg: number | null;  // VMG from all upwind segments
+  best_vmg_segment_ids: number[];
+  session_vmg_segment_ids: number[];
+  best_attempts_fraction: number;  // The fraction used for best_vmg calculation
 }
 
 export interface TrackSummary {
@@ -165,6 +171,7 @@ export async function analyzeTrack(
     min_duration: params.minDuration,
     min_distance: params.minDistance,
     min_speed: params.minSpeed,
+    best_attempts_fraction: params.bestAttemptsFraction,
   };
 
   // Add filter parameters if provided

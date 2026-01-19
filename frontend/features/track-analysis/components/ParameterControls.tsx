@@ -57,6 +57,12 @@ const PARAMETER_INFO = {
     description: 'Only count segments lasting longer than this',
     example: 'Ensures you held that angle consistently. Short bursts from gusts get filtered out',
   },
+  bestAttemptsFraction: {
+    label: 'Best Attempts %',
+    unit: '%',
+    description: 'Percentage of tightest-angle segments to use for "Best Attempts VMG"',
+    example: 'At 40%, only the top 40% tightest angles per tack count towards best VMG. Lower = more selective',
+  },
 };
 
 export function ParameterControls({
@@ -86,6 +92,7 @@ export function ParameterControls({
         minSpeed: config.defaults.min_speed || DEFAULT_PARAMETERS.minSpeed,
         minDistance: config.defaults.min_distance || DEFAULT_PARAMETERS.minDistance,
         minDuration: config.defaults.min_duration || DEFAULT_PARAMETERS.minDuration,
+        bestAttemptsFraction: config.defaults.best_attempts_fraction || DEFAULT_PARAMETERS.bestAttemptsFraction,
       });
     }
   }, [config, reset]);
@@ -99,6 +106,7 @@ export function ParameterControls({
         minSpeed: watchedValues.minSpeed,
         minDistance: watchedValues.minDistance,
         minDuration: watchedValues.minDuration,
+        bestAttemptsFraction: watchedValues.bestAttemptsFraction,
       });
     }, 300);
 
@@ -110,6 +118,7 @@ export function ParameterControls({
     watchedValues.minSpeed,
     watchedValues.minDistance,
     watchedValues.minDuration,
+    watchedValues.bestAttemptsFraction,
   ]);
 
   const handleResetToDefaults = () => {
@@ -119,6 +128,7 @@ export function ParameterControls({
       minSpeed: config?.defaults.min_speed || DEFAULT_PARAMETERS.minSpeed,
       minDistance: config?.defaults.min_distance || DEFAULT_PARAMETERS.minDistance,
       minDuration: config?.defaults.min_duration || DEFAULT_PARAMETERS.minDuration,
+      bestAttemptsFraction: config?.defaults.best_attempts_fraction || DEFAULT_PARAMETERS.bestAttemptsFraction,
     };
     reset(defaultParams);
   };
@@ -130,6 +140,7 @@ export function ParameterControls({
       minSpeed: watchedValues.minSpeed,
       minDistance: watchedValues.minDistance,
       minDuration: watchedValues.minDuration,
+      bestAttemptsFraction: watchedValues.bestAttemptsFraction,
     };
 
     analysisStore.updateParameters(currentParams);
@@ -142,6 +153,7 @@ export function ParameterControls({
     minSpeed: config?.ranges?.min_speed || DEFAULT_RANGES.minSpeed,
     minDistance: config?.ranges?.min_distance || DEFAULT_RANGES.minDistance,
     minDuration: config?.ranges?.min_duration || DEFAULT_RANGES.minDuration,
+    bestAttemptsFraction: config?.ranges?.best_attempts_fraction || DEFAULT_RANGES.bestAttemptsFraction,
   });
 
   const ranges = getRanges(config);
@@ -151,12 +163,14 @@ export function ParameterControls({
   const defaultSpeed = config?.defaults.min_speed || DEFAULT_PARAMETERS.minSpeed;
   const defaultDistance = config?.defaults.min_distance || DEFAULT_PARAMETERS.minDistance;
   const defaultDuration = config?.defaults.min_duration || DEFAULT_PARAMETERS.minDuration;
+  const defaultBestAttempts = config?.defaults.best_attempts_fraction || DEFAULT_PARAMETERS.bestAttemptsFraction;
 
   const hasCustomSettings =
     watchedValues.angleTolerance !== defaultAngle ||
     watchedValues.minSpeed !== defaultSpeed ||
     watchedValues.minDistance !== defaultDistance ||
-    watchedValues.minDuration !== defaultDuration;
+    watchedValues.minDuration !== defaultDuration ||
+    watchedValues.bestAttemptsFraction !== defaultBestAttempts;
 
   // Summary text for collapsed state
   const summaryText = hasCustomSettings
@@ -251,6 +265,47 @@ export function ParameterControls({
                 range={ranges.minDuration}
                 disabled={disabled}
               />
+
+              {/* Best Attempts Fraction - shown as percentage slider */}
+              <div className="space-y-1.5 pt-2 border-t">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="bestAttemptsFraction" className="text-sm">{PARAMETER_INFO.bestAttemptsFraction.label}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-slate-400 hover:text-slate-600">
+                        <HelpCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-[250px]">
+                      <p className="font-medium mb-1">{PARAMETER_INFO.bestAttemptsFraction.description}</p>
+                      <p className="text-slate-300 text-xs">{PARAMETER_INFO.bestAttemptsFraction.example}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Controller
+                    control={control}
+                    name="bestAttemptsFraction"
+                    render={({ field }) => (
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="range"
+                          min={ranges.bestAttemptsFraction.min * 100}
+                          max={ranges.bestAttemptsFraction.max * 100}
+                          step={ranges.bestAttemptsFraction.step * 100}
+                          value={Math.round(field.value * 100)}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) / 100)}
+                          disabled={disabled}
+                          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                        <span className="text-sm font-medium text-slate-700 w-10 text-right">
+                          {Math.round(field.value * 100)}%
+                        </span>
+                      </div>
+                    )}
+                  />
+                </div>
+              </div>
             </TooltipProvider>
           </CardContent>
         </CollapsibleContent>
