@@ -44,6 +44,7 @@ app.add_middleware(
         "https://foil-lab-web.vercel.app",  # Production frontend (Vercel)
         "https://foil-lab.vercel.app",  # Alternative production domain
         "https://gracious-love-production-ec22.up.railway.app",  # Production frontend (Railway)
+        "https://foillab.wrenchat.work",  # Custom domain
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
