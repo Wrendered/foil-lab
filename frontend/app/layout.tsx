@@ -30,12 +30,16 @@ export default function RootLayout({
           <nav className="bg-white shadow-sm border-b">
             <div className="container mx-auto px-4">
               <div className="flex justify-between items-center h-16">
-                <a href="https://wrenchat.work" className="text-xl font-bold text-gray-900 hover:text-gray-700">
+                <span className="text-xl font-bold text-gray-900">
                   Foil Lab
-                </a>
-                <span className="text-sm text-gray-500">
-                  Beta
                 </span>
+                <div className="text-sm text-gray-500 flex items-center gap-2">
+                  <span>Beta</span>
+                  <span>·</span>
+                  <a href="https://wrenchat.work" className="hover:text-gray-700 hover:underline">
+                    wrenchat.work
+                  </a>
+                </div>
               </div>
             </div>
           </nav>
